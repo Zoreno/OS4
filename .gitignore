@@ -31,3 +31,12 @@
 # Debug files
 *.dSYM/
 *.su
+
+#OS-specific
+**/bochslog.txt
+**/*.out
+**/*.img
+**/*.vdi
+**/*.iso
+disassembly/*
+
