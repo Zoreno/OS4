@@ -38,6 +38,5 @@
 **/*.img
 **/*.vdi
 **/*.iso
-disassembly/*
 *~
 
