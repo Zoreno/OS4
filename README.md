@@ -1,6 +1,27 @@
 # OS4
 
-X86 Operativsystem skrivet av mig
+X86 Operativsystem skrivet av mig. För närvarande endast stöd för VirtualBox och utveckling i linux.
+
+# Nödvänding programvara
+
+- NASM
+- GCC
+- Virtualbox
+
+# Instruktioner
+
+1. Kör make i root-directory.
+2. Kör ```bash bash build_harddrive.sh```
+3. Skapa en ny virtuell maskin i VBox.
+4. Gå in på inställningar för maskinen och gå till tabben system.
+5. Ändra boot-order till optical->hard disk->floppy.
+6. Gå till tabben storage.
+7. Ta bort alla existerande controllers.
+8. Lägg till en SATA-controller och en optisk disk med avbildningen os.iso.
+9. Lägg till en IDE-controller med en hårddisk med avbildningen hard_drive.vdi(skapad i steg 2)
+10. Gå till tabben serial och aktivera COM1. Port mode ska vara "raw file". Path kan vara till exempel "com.out"
+11. Starta upp virtuella maskinen. Undvik att trycka på tangentbordet innan kommandoprompten visas. (Detta ska åtgärdas :) )
+12. OS4 ska nu kunna köras. (Det har dock inte så mycket funktionalitet än)
 
 # TODO
 
