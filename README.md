@@ -11,7 +11,7 @@ X86 Operativsystem skrivet av mig. För närvarande endast stöd för VirtualBox
 # Instruktioner
 
 1. Kör make i root-directory.
-2. Kör ```bash bash build_harddrive.sh```
+2. Kör ```bash build_harddrive.sh```
 3. Skapa en ny virtuell maskin i VBox.
 4. Gå in på inställningar för maskinen och gå till tabben system.
 5. Ändra boot-order till optical->hard disk->floppy.
