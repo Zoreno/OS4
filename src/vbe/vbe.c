@@ -2,6 +2,8 @@
 
 #include <lib/stdio.h>
 
+#define SERIAL_VBE_OUTPUT 0
+
 // define our structure
 typedef struct __attribute__ ((packed)) {
     unsigned short di, si, bp, sp, bx, dx, cx, ax;
@@ -109,7 +111,7 @@ void vesa_get_video_info(){
 		if(strcmp(SIG, REF)){
 			return; // Signature does not match
 		}
-
+#if SERIAL_VBE_OUTPUT
 		serial_printf(COM1, "\n=================================================");
 		serial_printf(COM1, "\n==VBE INFO=======================================");
 		serial_printf(COM1, "\n=================================================\n");
@@ -156,6 +158,8 @@ void vesa_get_video_info(){
 			serial_printf(COM1, "\n");
 			serial_printf(COM1, "\n=================================================");
 		}
+
+#endif
 }
 
 int vesa_get_controller_info(vbe_info_t* info){

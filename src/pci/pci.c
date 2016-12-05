@@ -5,6 +5,8 @@
 #include <lib/string.h>
 #include <lib/stdio.h>
 
+#define SERIAL_PCI_OUTPUT 0
+
 #define PCI_MAKE_ID(bus,dev,func) (((bus) << 16) | ((dev) << 11) | ((func) << 8))
 
 // PCI Configuration Registers
@@ -73,6 +75,7 @@ void pciInit()
 
 	// Send out all read info to serial output for reference
 
+#if SERIAL_PCI_OUTPUT
 	serial_printf(COM1, "\n==========================================\n");
 	serial_printf(COM1,   "============ PCI Device List =============\n");
 	serial_printf(COM1,   "==========================================\n\n");
@@ -128,4 +131,6 @@ void pciInit()
 
 		cur_node = cur_node->next; // Advance
 	}
+
+#endif
 }

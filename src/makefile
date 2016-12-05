@@ -1,4 +1,4 @@
-SUBDIRS = libk kernel hal mm input floppy serial pci ata vbe acpi cmos
+SUBDIRS = libk kernel hal mm input floppy serial pci ata vbe acpi cmos vfs
 
 OBJECTS =
 

@@ -1,6 +1,10 @@
 #ifndef _FAT32_H
 #define _FAT32_H
 
+#include <lib/stdint.h>
+#include <vfs/bpb.h>
+#include <vfs/file_system.h>
+
 typedef struct {
 
 	// Leading signature
@@ -107,5 +111,31 @@ typedef struct {
 	uint32_t DIR_FileSize;
 
 } __attribute__((packed)) DIR_Ent_t;
+
+// Long name directory entry
+typedef struct {
+	uint8_t LDIR_Ord;
+	short LDIR_Name1[5];
+	uint8_t LDIR_Attr;
+	uint8_t LDIR_Type;
+	uint8_t Chksum;
+	short LDIR_Name2[6];
+	uint16_t LDIR_FstClustLO;
+	short LDIR_Name3[2];
+} __attribute__((packed)) LDIR_Ent_t;
+
+#define FAT_CLUSTER_FREE 0x00000000
+#define FAT_CLUSTER_BAD 0xFFFFFFF7
+#define FAT_CLUSTER_EOC 0x0FFFFFF8
+
+FS_ERROR FAT_initialize();
+
+FS_ERROR FAT_fopen(PFILE file, const char* filePath, uint8_t flags);
+
+FS_ERROR FAT_fclose(PFILE file);
+
+FS_ERROR FAT_fread(PFILE file, void* buffer, size_t length);
+
+FS_ERROR FAT_fwrite(PFILE file, const void* buffer, size_t length);
 
 #endif

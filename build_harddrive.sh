@@ -7,5 +7,3 @@ mkdosfs -F 32 -I hard_drive.img
 bash update_image.sh
 
 bash create_harddrive.sh
-
-rm hard_drive.img

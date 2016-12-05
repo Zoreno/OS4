@@ -15,6 +15,7 @@
 #include <cmos/cmos_time.h>
 
 #include <vfs/bpb.h>
+#include <vfs/fat32.h>
 #include <vbe/vbe.h>
 
 /*
@@ -304,14 +305,18 @@ void init(multiboot_info_t* mb_ptr){
 	// TODO: This should use values from PCI
 	ide_initialize(0x1F0, 0x3F6, 0x170, 0x376, 0x000);
 
+	// Initialize FAT
+
+	printf("Initializing FAT\n");
+
+	FAT_initialize();
+
 	// Fetch video information
 	vesa_get_video_info();
 
 	read_FAT();
 
 	printf("Kernel initialization done!\n");
-
-	//getch();
 }
 
 void sleep (int ms) {
@@ -545,6 +550,8 @@ int run_cmd (char* cmd_buf) {
 
 		memcpy(&bootSector, buffer, 512);
 
+		kfree(buffer);
+
 		printf("\nBios Parameter Block:\n");
 
 		char OEM[9] = {0};
@@ -568,6 +575,49 @@ int run_cmd (char* cmd_buf) {
 		printf("Root cluster: %i\n", bootSector.bpbExt.rootCluster);
 		printf("Info cluster: %i\n", bootSector.bpbExt.infoCluster);
 		printf("Backup Boot: %i\n", bootSector.bpbExt.backupBoot);
+
+
+		DIR_Ent_t* root_dir =(uint8_t*) kmalloc(512);
+
+		uint32_t first_data_sector = bootSector.bpb.reservedSectors 
+			+ bootSector.bpbExt.sectorsPerFat32*bootSector.bpb.numberOfFats16;
+
+		ide_read_sectors(0, 1, first_data_sector - 2 + bootSector.bpbExt.rootCluster, 0, root_dir);
+
+		for(int i = 0; i < 16; ++i){
+			if(root_dir[i].DIR_Name[0] == 0xE5){
+				printf("Entry %i: FREE\n", i);
+			} else if(root_dir[i].DIR_Name[0] == 0x00){
+				printf("Entry %i: FREE(last)\n", i);
+				break;
+			} else if(has_attr(root_dir[i].DIR_Attr, ATTR_LONG_NAME)){
+				LDIR_Ent_t* long_name_entry = (LDIR_Ent_t*)&root_dir[i];
+				char name[14] = {0};
+				size_t pos = 0;
+				for(int i = 0; i < 5; ++i){
+					name[pos++] = (char)long_name_entry->LDIR_Name1[i];
+				}
+				for(int i = 0; i < 6; ++i){
+					name[pos++] = (char)long_name_entry->LDIR_Name2[i];
+				}
+				for(int i = 0; i < 2; ++i){
+					name[pos++] = (char)long_name_entry->LDIR_Name3[i];
+				}
+
+				printf("Entry %i: %s[LONG_NAME]\n", i, name);
+			} else if(has_attr(root_dir[i].DIR_Attr, ATTR_DIRECTORY)){
+				char entry_name[12] = {0};
+				memcpy(entry_name, &root_dir[i].DIR_Name, 11);
+				printf("Entry %i: %s [DIR]\n", i, entry_name);
+			} else {
+				char entry_name[12] = {0};
+				memcpy(entry_name, &root_dir[i].DIR_Name, 11);
+				printf("Entry %i: %(11)s %i bytes [FILE]\n", i, entry_name, root_dir[i].DIR_FileSize);
+			}
+		}
+
+		kfree(root_dir);
+
 	}
 
 	else if(strcmp (cmd_buf, "write") == 0){
