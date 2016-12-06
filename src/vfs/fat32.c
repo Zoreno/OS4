@@ -145,7 +145,7 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 		folder = 1;
 
 		// Get content of filePath before '/'
-		strncpy(fileName, filePath, (size_t)(p-filePath));
+		strncpy(fileName, filePath, (size_t)(p-filePath-1));
 
 		++p;
 
@@ -174,21 +174,24 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 	}
 
 	char current_long_name[100] = {0};
-	uint32_t current_long_name_index = 0;
 	int hasLongName = 0;
 	for(int i = 0; i < 16*chain_length; ++i){
 		if(buffer[i].DIR_Name[0] == 0xE5){
 			hasLongName = 0;
 			memset(current_long_name, 0, 100);
-			current_long_name_index = 0;
 		} else if(buffer[i].DIR_Name[0] == 0x00){
 			
 			break;
 		}else if(has_attr(buffer[i].DIR_Attr, ATTR_LONG_NAME)){
 
-			printf("[LONG_NAME]\n");
+			
 			// TODO checksum
 			LDIR_Ent_t* long_name_entry = (LDIR_Ent_t*)&buffer[i];
+
+			uint8_t ordinal = long_name_entry->LDIR_Ord & ~(0x40);
+
+			printf("[LONG_NAME] Ordinal: %i\n",ordinal);
+
 			char name[14] = {0};
 			size_t pos = 0;
 			for(int i = 0; i < 5; ++i){
@@ -201,8 +204,7 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 				name[pos++] = (char)long_name_entry->LDIR_Name3[i];
 			}
 			// Copy name to buffer
-			memcpy(current_long_name, name, 13);
-			current_long_name_index+=13;
+			memcpy(current_long_name+13*(ordinal-1), name, 13);
 			hasLongName = 1;
 		} else if(has_attr(buffer[i].DIR_Attr, ATTR_DIRECTORY)){
 
@@ -211,25 +213,33 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 			if(!folder){
 				hasLongName = 0;
 				memset(current_long_name, 0, 100);
-				current_long_name_index = 0;
 				continue;
 			}
 
 			// If we parsed a long file name, 
 			if(hasLongName){
 				if(strcmp(current_long_name, fileName) == 0){
-					return FAT_look_in_directory(file, restOfPath, 
-						CLUSTER(buffer[i].DIR_FstClusLO ,buffer[i].DIR_FstClusHI), flags);
+					return FAT_look_in_directory(
+						file, 
+						CLUSTER(buffer[i].DIR_FstClusLO ,buffer[i].DIR_FstClusHI),
+						restOfPath,  
+						flags);
 				}
 			} else {
 				char entry_name[12] = {0};
 				memcpy(entry_name, &buffer[i].DIR_Name, 11);
 
 				if(strncmp(entry_name, fileName, 11) == 0){
-					return FAT_look_in_directory(file, restOfPath, 
-						(uint32_t)buffer[i].DIR_FstClusLO + (((uint32_t)buffer[i].DIR_FstClusHI)<<16), flags);
+					return FAT_look_in_directory(
+						file, 
+						CLUSTER(buffer[i].DIR_FstClusLO ,buffer[i].DIR_FstClusHI),
+						restOfPath,  
+						flags);
 				}
 			}
+
+			hasLongName = 0;
+			memset(current_long_name, 0, 100);
 		} else { // FILE
 			// We found a file, but are looking for a folder
 
@@ -238,7 +248,6 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 			if(folder){
 				hasLongName = 0;
 				memset(current_long_name, 0, 100);
-				current_long_name_index = 0;
 				continue;
 			}
 
@@ -277,6 +286,8 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 					return FSE_GOOD;
 				}
 			}
+			hasLongName = 0;
+			memset(current_long_name, 0, 100);
 		}
 	}
 

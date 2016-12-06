@@ -624,7 +624,8 @@ int run_cmd (char* cmd_buf) {
 	else if(strcmp (cmd_buf, "readfile") == 0){
 		FILE file;
 		FS_ERROR e;
-		e = FAT_fopen(&file, "test.txt", 0);
+		
+		e = FAT_fopen(&file, "testDir/testfilewithlongfilename.txt", 0);
 
 		printf("File open error: %i\n", e);
 
