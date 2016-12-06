@@ -2,7 +2,6 @@
 #include <lib/stdio.h>
 #include <lib/string.h>
 #include <ata/ata.h>
-#include <vfs/bpb.h>
 
 FILESYSTEM _FSysFat;
 

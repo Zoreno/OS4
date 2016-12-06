@@ -3,6 +3,8 @@
 
 #include <lib/stdint.h>
 
+
+
 typedef enum{
 
 	FSE_GOOD = 0,
@@ -61,6 +63,8 @@ typedef FILESYSTEM* PFILESYSTEM;
 
 #define IS_INVALID(file) (file.flags == FS_INVALID)
 #define IS_DIRECTORY(file) ((file.flags & FS_DIRECTORY) == FS_DIRECTORY)
+
+char* fs_err_str(FS_ERROR error);
 
 FS_ERROR fs_open_file(PFILE file, const char* fileName, uint32_t flags);
 FS_ERROR fs_read_file(PFILE file, void* buffer, size_t length);

@@ -353,6 +353,14 @@ void get_cmd (char* buf, int n) {
 		if (key==KEY_RETURN)
 			break;
 
+		switch(key){
+			case KEY_LSHIFT:
+			case KEY_RSHIFT:
+			case KEY_LCTRL:
+			case KEY_RCTRL:
+				continue;
+		}
+
 		//! backspace
 		if (key==KEY_BACKSPACE) {
 
@@ -535,92 +543,6 @@ int run_cmd (char* cmd_buf) {
 		printf("\nDone\n");
 	}
 
-	else if(strcmp (cmd_buf, "read") == 0){
-		uint32_t sectornum = 0;
-
-		uint8_t* buffer =(uint8_t*) kmalloc(512);
-
-		if(!buffer){
-			printf("Could not allocate buffer!\n");
-			return;
-		}
-
-		ide_read_sectors(0, 1, sectornum, 0, buffer);
-
-		boot_sector_t bootSector = {0};
-
-		memcpy(&bootSector, buffer, 512);
-
-		kfree(buffer);
-
-		printf("\nBios Parameter Block:\n");
-
-		char OEM[9] = {0};
-		memcpy(OEM, &bootSector.bpb.OEMName[0], 8);
-		printf("OEM Name: %s\n", OEM);
-
-		printf("Bytes per sector: %i\n", bootSector.bpb.bytesPerSector);
-		printf("Sectors per cluster: %i\n", bootSector.bpb.sectorsPerCluster);
-		printf("Reserved sectors: %i\n", bootSector.bpb.reservedSectors);
-		printf("Number of FATs (16): %i\n", bootSector.bpb.numberOfFats16);
-		printf("Number of dir entries: %i\n", bootSector.bpb.numDirEntries);
-		printf("Media: %i\n", bootSector.bpb.media);
-		printf("Sectors per FAT (16): %i\n", bootSector.bpb.sectorsPerFat16);
-		printf("Sectors per track: %i\n", bootSector.bpb.sectorsPerTrack);
-		printf("Heads per cylinder: %i\n", bootSector.bpb.headsPerCyl);
-		printf("Hidden sectors: %i\n", bootSector.bpb.hiddenSectors);
-		printf("Long sectors: %i\n", bootSector.bpb.longSectors);
-		printf("Sectors per FAT (32): %i\n", bootSector.bpbExt.sectorsPerFat32);
-		printf("Flags: %i\n", bootSector.bpbExt.flags);
-		printf("Version: %i\n", bootSector.bpbExt.version);
-		printf("Root cluster: %i\n", bootSector.bpbExt.rootCluster);
-		printf("Info cluster: %i\n", bootSector.bpbExt.infoCluster);
-		printf("Backup Boot: %i\n", bootSector.bpbExt.backupBoot);
-
-
-		DIR_Ent_t* root_dir =(uint8_t*) kmalloc(512);
-
-		uint32_t first_data_sector = bootSector.bpb.reservedSectors 
-			+ bootSector.bpbExt.sectorsPerFat32*bootSector.bpb.numberOfFats16;
-
-		ide_read_sectors(0, 1, first_data_sector - 2 + bootSector.bpbExt.rootCluster, 0, root_dir);
-
-		for(int i = 0; i < 16; ++i){
-			if(root_dir[i].DIR_Name[0] == 0xE5){
-				printf("Entry %i: FREE\n", i);
-			} else if(root_dir[i].DIR_Name[0] == 0x00){
-				printf("Entry %i: FREE(last)\n", i);
-				break;
-			} else if(has_attr(root_dir[i].DIR_Attr, ATTR_LONG_NAME)){
-				LDIR_Ent_t* long_name_entry = (LDIR_Ent_t*)&root_dir[i];
-				char name[14] = {0};
-				size_t pos = 0;
-				for(int i = 0; i < 5; ++i){
-					name[pos++] = (char)long_name_entry->LDIR_Name1[i];
-				}
-				for(int i = 0; i < 6; ++i){
-					name[pos++] = (char)long_name_entry->LDIR_Name2[i];
-				}
-				for(int i = 0; i < 2; ++i){
-					name[pos++] = (char)long_name_entry->LDIR_Name3[i];
-				}
-
-				printf("Entry %i: %s[LONG_NAME]\n", i, name);
-			} else if(has_attr(root_dir[i].DIR_Attr, ATTR_DIRECTORY)){
-				char entry_name[12] = {0};
-				memcpy(entry_name, &root_dir[i].DIR_Name, 11);
-				printf("Entry %i: %s [DIR]\n", i, entry_name);
-			} else {
-				char entry_name[12] = {0};
-				memcpy(entry_name, &root_dir[i].DIR_Name, 11);
-				printf("Entry %i: %(11)s %i bytes [FILE]\n", i, entry_name, root_dir[i].DIR_FileSize);
-			}
-		}
-
-		kfree(root_dir);
-
-	}
-
 	else if(strcmp (cmd_buf, "readfile") == 0){
 
 		char filePath[100] = {0};
@@ -635,6 +557,7 @@ int run_cmd (char* cmd_buf) {
 		e = fs_open_file(&file, filePath, 0);
 
 		if(e!=0){
+			printf("File open error: %s\n", fs_err_str(e));
 			fs_close_file(&file);
 			return;
 		}
@@ -644,7 +567,7 @@ int run_cmd (char* cmd_buf) {
 			e = fs_read_file(&file, buffer, 0);
 
 			if(e != 0){
-				printf("File read error: %i\n", e);
+				printf("File read error: %s\n", fs_err_str(e));
 			}
 
 			for(int i = 0; i < 512; ++i){

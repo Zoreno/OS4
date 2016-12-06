@@ -6,6 +6,32 @@
 
 PFILESYSTEM _FileSystems[DEVICE_MAX];
 
+char* fs_err_str(FS_ERROR error){
+
+	switch(error){
+		case FSE_GOOD:
+			return "FSE_GOOD";
+		case FSE_DEVICE_NOT_PRESENT:
+			return "FSE_DEVICE_NOT_PRESENT";
+		case FSE_BAD_FILE:
+			return "FSE_BAD_FILE";
+		case FSE_FILE_NOT_FOUND:
+			return "FSE_FILE_NOT_FOUND";
+		case FSE_DIR_NOT_FOUND:
+			return "FSE_DIR_NOT_FOUND";
+		case FSE_INVALID_FILE_NAME:
+			return "FSE_INVALID_FILE_NAME";
+		case FSE_FILE_CORRUPT:
+			return "FSE_FILE_CORRUPT";
+		case FSE_EOF:
+			return "FSE_EOF";
+		case FSE_BAD_FILESYSTEM:
+			return "FSE_BAD_FILESYSTEM";
+		default:
+			return "Unexpected error";
+	}
+
+};
 
 FS_ERROR fs_open_file(PFILE file, const char* fileName, uint32_t flags){
 	if(!fileName){
