@@ -1,6 +1,8 @@
 #ifndef _FILE_SYSTEM_H
 #define _FILE_SYSTEM_H
 
+#include <lib/stdint.h>
+
 typedef enum{
 
 	FSE_GOOD = 0,
@@ -16,7 +18,9 @@ typedef enum{
 
 	FSE_EOF,
 
-	FSE_NUM_ERRORS
+	FSE_BAD_FILESYSTEM,
+
+	FSE_NUM_ERRORS // Not an error, just an indication of how many errors are defined.
 
 } FS_ERROR;
 
@@ -57,5 +61,13 @@ typedef FILESYSTEM* PFILESYSTEM;
 
 #define IS_INVALID(file) (file.flags == FS_INVALID)
 #define IS_DIRECTORY(file) ((file.flags & FS_DIRECTORY) == FS_DIRECTORY)
+
+FS_ERROR fs_open_file(PFILE file, const char* fileName, uint32_t flags);
+FS_ERROR fs_read_file(PFILE file, void* buffer, size_t length);
+FS_ERROR fs_write_file(PFILE file, const void* buffer, size_t length);
+FS_ERROR fs_close_file(PFILE file);
+FS_ERROR fs_register(PFILESYSTEM fileSystem, unsigned int deviceID);
+FS_ERROR fs_unregister(PFILESYSTEM fileSystem);
+FS_ERROR fs_unregister_by_id(unsigned int deviceID);
 
 #endif

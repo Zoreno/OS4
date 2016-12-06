@@ -4,6 +4,8 @@
 #include <ata/ata.h>
 #include <vfs/bpb.h>
 
+FILESYSTEM _FSysFat;
+
 boot_sector_t _bootSector = {0};
 
 uint32_t first_data_sector = 0;
@@ -47,7 +49,7 @@ uint32_t read_FAT_entry(uint32_t entry){
 	// Allocate a buffer the size of a sector
 	uint32_t* buffer = (uint32_t*)kmalloc(512);
 
-	// Read the sector containing the requested value
+	// Read the sector containprinting the requested value
 	ide_read_sectors(0,1, first_FAT_sector + fat_sector_num, 0, buffer);
 
 	// Store the 28 lowest bits
@@ -97,8 +99,6 @@ uint32_t get_cluster_chain_length(uint32_t startingCluster){
 	uint32_t current_cluster = startingCluster;
 
 	while(read_FAT_entry(current_cluster) != FAT_CLUSTER_EOC){
-		printf("current_cluster: %i\n", current_cluster);
-
 		count++;
 
 		if(read_FAT_entry(current_cluster) == FAT_CLUSTER_BAD)
@@ -128,19 +128,12 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 	int folder = 0;
 	char* p = strchr(filePath, '/');
 
-	printf("FilePath: %s\n", filePath);
-
-
 	if(!p){
-
-		printf("[FILE]\n");
 		// No occurance of '/', must be a file
 
 		// Copy full path(should only contain fileName)
 		strcpy(fileName, filePath);
 	} else {
-
-		printf("[FOLDER]\n");
 		// Occurance of '/', must be a directory
 		folder = 1;
 
@@ -152,9 +145,6 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 		// Get rest of filePath
 		strcpy(restOfPath, p);
 	}
-
-	printf("FileName: %s\n", fileName);
-	printf("restOfPath: %s\n", restOfPath);
 
 	// Parse Directory structure
 	uint32_t chain_length = get_cluster_chain_length(startingCluster);
@@ -190,8 +180,6 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 
 			uint8_t ordinal = long_name_entry->LDIR_Ord & ~(0x40);
 
-			printf("[LONG_NAME] Ordinal: %i\n",ordinal);
-
 			char name[14] = {0};
 			size_t pos = 0;
 			for(int i = 0; i < 5; ++i){
@@ -208,7 +196,6 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 			hasLongName = 1;
 		} else if(has_attr(buffer[i].DIR_Attr, ATTR_DIRECTORY)){
 
-			printf("[FOLDER] %s\n", current_long_name);
 			// We found a folder, but are looking for a file
 			if(!folder){
 				hasLongName = 0;
@@ -243,8 +230,6 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 		} else { // FILE
 			// We found a file, but are looking for a folder
 
-			printf("[FILE] %s\n", current_long_name);
-
 			if(folder){
 				hasLongName = 0;
 				memset(current_long_name, 0, 100);
@@ -254,8 +239,6 @@ FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char*
 			if(hasLongName){
 				if(strcmp(current_long_name, fileName) == 0){
 					// Found file
-
-					printf("file found!\n");
 
 					// Fill in file info
 					strcpy(file->name, fileName);
@@ -305,6 +288,15 @@ FS_ERROR FAT_initialize(){
 			+ _bootSector.bpbExt.sectorsPerFat32*_bootSector.bpb.numberOfFats16 - 2;
 
 	
+	strcpy(_FSysFat.name, "FAT32");
+
+	_FSysFat.f_open = FAT_fopen;
+	_FSysFat.f_close = FAT_fclose;
+	_FSysFat.f_read = FAT_fread;
+	_FSysFat.f_write = FAT_fwrite;
+
+	fs_register(&_FSysFat, 'a');
+
 
 	return FSE_GOOD;
 }

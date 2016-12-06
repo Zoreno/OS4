@@ -622,21 +622,26 @@ int run_cmd (char* cmd_buf) {
 	}
 
 	else if(strcmp (cmd_buf, "readfile") == 0){
+
+		char filePath[100] = {0};
+
+		printf("\nEnter path:");
+		get_cmd(filePath, 100);
+		printf("\n");
+
 		FILE file;
 		FS_ERROR e;
 		
-		e = FAT_fopen(&file, "testDir/testfilewithlongfilename.txt", 0);
+		e = fs_open_file(&file, filePath, 0);
 
-		printf("File open error: %i\n", e);
-
-		printf("FILE DATA:\n");
-		printf("Name: %s\n", file.name);
-		printf("File Length: %i\n", file.fileLength);
-		printf("File starting cluster: %i\n", file.currentCluster);
+		if(e!=0){
+			fs_close_file(&file);
+			return;
+		}
 
 		char* buffer = (char*) kmalloc(512);
 		while(!file.eof){
-			e = FAT_fread(&file, buffer, 0);
+			e = fs_read_file(&file, buffer, 0);
 
 			if(e != 0){
 				printf("File read error: %i\n", e);
@@ -649,7 +654,7 @@ int run_cmd (char* cmd_buf) {
 			getch();
 		}
 
-		FAT_fclose(&file);
+		fs_close_file(&file);
 	}
 
 	else if(strcmp (cmd_buf, "write") == 0){

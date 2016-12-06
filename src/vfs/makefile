@@ -1,5 +1,6 @@
 OBJECTS = \
-fat32.o
+fat32.o \
+file_system.o
 
 
 SUBDIRS =
