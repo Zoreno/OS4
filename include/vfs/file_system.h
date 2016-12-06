@@ -14,13 +14,15 @@ typedef enum{
 
 	FSE_FILE_CORRUPT,
 
-	FSE_EOF
+	FSE_EOF,
+
+	FSE_NUM_ERRORS
 
 } FS_ERROR;
 
 typedef struct{
 
-	char name[32];
+	char name[100];
 	uint32_t flags;
 	uint32_t fileLength;
 	uint32_t id;
@@ -39,7 +41,7 @@ typedef struct{
 
 	FS_ERROR (*p_install)(void);
 
-	FS_ERROR (*f_open)	(PFILE file, const char* fileName, uint8_t flags);
+	FS_ERROR (*f_open)	(PFILE file, const char* fileName, uint32_t flags);
 	FS_ERROR (*f_close)	(PFILE file);
 
 	FS_ERROR (*f_read)	(PFILE file, void* buffer, size_t length);

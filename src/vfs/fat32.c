@@ -26,7 +26,7 @@ uint32_t get_cluster_chain_length(uint32_t startingCluster);
 // FAT directory function prototypes
 //===================================================================
 
-FS_ERROR FAT_parse_directory(uint32_t startingCluster);
+FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char* filePath, uint32_t flags);
 
 //===================================================================
 // FAT structure function implementations
@@ -114,8 +114,49 @@ uint32_t get_cluster_chain_length(uint32_t startingCluster){
 // FAT directory function implementations
 //===================================================================
 
-FS_ERROR FAT_parse_directory(uint32_t startingCluster){
+// test.txt
+// test/folder/file.dat
 
+#define CLUSTER(low, high)((uint32_t)low + (((uint32_t)high)<<16))
+
+FS_ERROR FAT_look_in_directory(PFILE file, uint32_t startingCluster, const char* filePath, uint32_t flags){
+
+	// Start with parsing the filePath
+
+	char fileName[100] = {0};
+	char restOfPath[100] = {0};
+	int folder = 0;
+	char* p = strchr(filePath, '/');
+
+	printf("FilePath: %s\n", filePath);
+
+
+	if(!p){
+
+		printf("[FILE]\n");
+		// No occurance of '/', must be a file
+
+		// Copy full path(should only contain fileName)
+		strcpy(fileName, filePath);
+	} else {
+
+		printf("[FOLDER]\n");
+		// Occurance of '/', must be a directory
+		folder = 1;
+
+		// Get content of filePath before '/'
+		strncpy(fileName, filePath, (size_t)(p-filePath));
+
+		++p;
+
+		// Get rest of filePath
+		strcpy(restOfPath, p);
+	}
+
+	printf("FileName: %s\n", fileName);
+	printf("restOfPath: %s\n", restOfPath);
+
+	// Parse Directory structure
 	uint32_t chain_length = get_cluster_chain_length(startingCluster);
 
 	// Allocate buffer
@@ -132,13 +173,21 @@ FS_ERROR FAT_parse_directory(uint32_t startingCluster){
 		current_cluster = read_FAT_entry(current_cluster);
 	}
 
+	char current_long_name[100] = {0};
+	uint32_t current_long_name_index = 0;
+	int hasLongName = 0;
 	for(int i = 0; i < 16*chain_length; ++i){
 		if(buffer[i].DIR_Name[0] == 0xE5){
-			printf("Entry %i: FREE\n", i);
+			hasLongName = 0;
+			memset(current_long_name, 0, 100);
+			current_long_name_index = 0;
 		} else if(buffer[i].DIR_Name[0] == 0x00){
-			printf("Entry %i: FREE(last)\n", i);
+			
 			break;
-		} else if(has_attr(buffer[i].DIR_Attr, ATTR_LONG_NAME)){
+		}else if(has_attr(buffer[i].DIR_Attr, ATTR_LONG_NAME)){
+
+			printf("[LONG_NAME]\n");
+			// TODO checksum
 			LDIR_Ent_t* long_name_entry = (LDIR_Ent_t*)&buffer[i];
 			char name[14] = {0};
 			size_t pos = 0;
@@ -151,19 +200,87 @@ FS_ERROR FAT_parse_directory(uint32_t startingCluster){
 			for(int i = 0; i < 2; ++i){
 				name[pos++] = (char)long_name_entry->LDIR_Name3[i];
 			}
-				printf("Entry %i: %s[LONG_NAME]\n", i, name);
+			// Copy name to buffer
+			memcpy(current_long_name, name, 13);
+			current_long_name_index+=13;
+			hasLongName = 1;
 		} else if(has_attr(buffer[i].DIR_Attr, ATTR_DIRECTORY)){
-			char entry_name[12] = {0};
-			memcpy(entry_name, &buffer[i].DIR_Name, 11);
-			printf("Entry %i: %s [DIR]\n", i, entry_name);
-		} else {
-			char entry_name[12] = {0};
-			memcpy(entry_name, &buffer[i].DIR_Name, 11);
-			printf("Entry %i: %(11)s %i bytes [FILE]\n", i, entry_name, buffer[i].DIR_FileSize);
+
+			printf("[FOLDER] %s\n", current_long_name);
+			// We found a folder, but are looking for a file
+			if(!folder){
+				hasLongName = 0;
+				memset(current_long_name, 0, 100);
+				current_long_name_index = 0;
+				continue;
+			}
+
+			// If we parsed a long file name, 
+			if(hasLongName){
+				if(strcmp(current_long_name, fileName) == 0){
+					return FAT_look_in_directory(file, restOfPath, 
+						CLUSTER(buffer[i].DIR_FstClusLO ,buffer[i].DIR_FstClusHI), flags);
+				}
+			} else {
+				char entry_name[12] = {0};
+				memcpy(entry_name, &buffer[i].DIR_Name, 11);
+
+				if(strncmp(entry_name, fileName, 11) == 0){
+					return FAT_look_in_directory(file, restOfPath, 
+						(uint32_t)buffer[i].DIR_FstClusLO + (((uint32_t)buffer[i].DIR_FstClusHI)<<16), flags);
+				}
+			}
+		} else { // FILE
+			// We found a file, but are looking for a folder
+
+			printf("[FILE] %s\n", current_long_name);
+
+			if(folder){
+				hasLongName = 0;
+				memset(current_long_name, 0, 100);
+				current_long_name_index = 0;
+				continue;
+			}
+
+			if(hasLongName){
+				if(strcmp(current_long_name, fileName) == 0){
+					// Found file
+
+					printf("file found!\n");
+
+					// Fill in file info
+					strcpy(file->name, fileName);
+					file->id = 0;
+					file->currentCluster = CLUSTER(buffer[i].DIR_FstClusLO ,buffer[i].DIR_FstClusHI);
+					file->eof = 0;
+					file->fileLength = buffer[i].DIR_FileSize;
+
+					file->flags = FS_FILE;
+
+					return FSE_GOOD;
+				}
+			} else {
+				char entry_name[12] = {0};
+				memcpy(entry_name, &buffer[i].DIR_Name, 11);
+
+				if(strncmp(entry_name, fileName, 11) == 0){
+					// Found file
+
+					strcpy(file->name, fileName);
+					file->id = 0;
+					file->currentCluster = CLUSTER(buffer[i].DIR_FstClusLO ,buffer[i].DIR_FstClusHI);
+					file->eof = 0;
+					file->fileLength = buffer[i].DIR_FileSize;
+
+					file->flags = FS_FILE;
+
+					return FSE_GOOD;
+				}
+			}
 		}
 	}
 
-	return FSE_GOOD;
+	return FSE_FILE_NOT_FOUND;
 }
 
 //===================================================================
@@ -176,13 +293,13 @@ FS_ERROR FAT_initialize(){
 	first_data_sector = _bootSector.bpb.reservedSectors 
 			+ _bootSector.bpbExt.sectorsPerFat32*_bootSector.bpb.numberOfFats16 - 2;
 
-	FAT_parse_directory(_bootSector.bpbExt.rootCluster);
+	
 
 	return FSE_GOOD;
 }
 
-FS_ERROR FAT_fopen(PFILE file, const char* filePath, uint8_t flags){
-
+FS_ERROR FAT_fopen(PFILE file, const char* filePath, uint32_t flags){
+	FAT_look_in_directory(file, _bootSector.bpbExt.rootCluster, filePath, flags);
 }
 
 FS_ERROR FAT_fclose(PFILE file){
@@ -190,7 +307,28 @@ FS_ERROR FAT_fclose(PFILE file){
 }
 
 FS_ERROR FAT_fread(PFILE file, void* buffer, size_t length){
+	if(!file){
+		return FSE_BAD_FILE;
+	}
 
+	// Read one sector
+	ide_read_sectors(0, 1, first_data_sector + file->currentCluster, 0, buffer);
+
+	uint32_t nextCluster = read_FAT_entry(file->currentCluster);
+
+	if(nextCluster == FAT_CLUSTER_EOC){
+		file->eof = 1;
+		return FSE_EOF;
+	}
+
+	if(nextCluster == FAT_CLUSTER_FREE){
+		file->eof = 1;
+		return FSE_FILE_CORRUPT;
+	}
+
+	file->currentCluster = nextCluster;
+
+	return FSE_GOOD;
 }
 
 FS_ERROR FAT_fwrite(PFILE file, const void* buffer, size_t length){

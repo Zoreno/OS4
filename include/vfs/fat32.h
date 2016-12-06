@@ -130,7 +130,7 @@ typedef struct {
 
 FS_ERROR FAT_initialize();
 
-FS_ERROR FAT_fopen(PFILE file, const char* filePath, uint8_t flags);
+FS_ERROR FAT_fopen(PFILE file, const char* filePath, uint32_t flags);
 
 FS_ERROR FAT_fclose(PFILE file);
 
