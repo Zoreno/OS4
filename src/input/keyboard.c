@@ -500,60 +500,52 @@ char keyboard_key_to_ascii(KEYCODE keycode){
 				switch (key) {
 
 					case '0':
-						key = KEY_RIGHTPARENTHESIS;
+						key = KEY_EQUAL;
 						break;
 					case '1':
 						key = KEY_EXCLAMATION;
 						break;
 					case '2':
-						key = KEY_AT;
+						key = KEY_QUOTEDOUBLE;
 						break;
 					case '3':
-						key = KEY_EXCLAMATION;
+						key = KEY_HASH;
 						break;
 					case '4':
-						key = KEY_HASH;
+						key = KEY_GRAVE;
 						break;
 					case '5':
 						key = KEY_PERCENT;
 						break;
 					case '6':
-						key = KEY_CARRET;
-						break;
-					case '7':
 						key = KEY_AMPERSAND;
 						break;
+					case '7':
+						key = KEY_SLASH;
+						break;
 					case '8':
-						key = KEY_ASTERISK;
+						key = KEY_LEFTPARENTHESIS;
 						break;
 					case '9':
-						key = KEY_LEFTPARENTHESIS;
+						key = KEY_RIGHTPARENTHESIS;
 						break;
 				}
 			} else {
 				switch (key) {
 					case KEY_COMMA:
-						key = KEY_LESS;
+						key = KEY_SEMICOLON;
 						break;
 
 					case KEY_DOT:
-						key = KEY_GREATER;
-						break;
-
-					case KEY_SLASH:
-						key = KEY_QUESTION;
-						break;
-
-					case KEY_SEMICOLON:
 						key = KEY_COLON;
 						break;
 
 					case KEY_QUOTE:
-						key = KEY_QUOTEDOUBLE;
+						key = KEY_KP_ASTERISK;
 						break;
 
-					case KEY_LEFTBRACKET :
-						key = KEY_LEFTCURL;
+					case KEY_TILDE:
+						key = KEY_CARRET;
 						break;
 
 					case KEY_RIGHTBRACKET :

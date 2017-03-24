@@ -37,9 +37,7 @@ extern char _ctype[];
 #define tolower(c)	(isupper(c) ? c + 'a' - 'A' : c)
 #define toupper(c)	(islower(c) ? c + 'A' - 'a' : c)
 
-#endif
-
-#if CTYPE_VER == 2
+#elif CTYPE_VER == 2
 
 #define isspace(c)      ((c) == ' ' || ((c) >= '\t' && (c) <= '\r'))
 #define isascii(c)      (((c) & ~0x7f) == 0)

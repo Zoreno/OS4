@@ -33,8 +33,8 @@ void breakpoint_trap (
     unsigned int eip,
     unsigned int eflags
     ){
-	kernel_panic("Breakpoint trap");
-	for(;;);
+	//kernel_panic("Breakpoint trap");
+	//for(;;);
 }
 
 void overflow_trap (

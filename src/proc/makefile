@@ -1,8 +1,8 @@
-SUBDIRS = libk kernel hal mm input floppy serial pci ata vbe acpi cmos vfs proc
+SUBDIRS = 
 
-OBJECTS =
+OBJECTS = elf.o
 
-CC = $(CC_DIR)/i686-elf-gcc
+CC = gcc
 CFLAGS=-g3 -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -I $(INC_DIR)
 ASFLAGS=-felf32
 

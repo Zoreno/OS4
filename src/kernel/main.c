@@ -19,6 +19,8 @@
 #include <vfs/file_system.h>
 #include <vbe/vbe.h>
 
+#include <elf/elf.h>
+
 /*
 
 	Known Bugs:
@@ -30,6 +32,8 @@
 		KERNEL HEAP NOT TESTED!
 
 */
+
+void sleep (int ms);
 
 #define CHECK_FLAG(flags,bit)	((flags) & (1 << (bit)))
 
@@ -103,22 +107,22 @@ void int32_test(uint16_t mode)
     }
 
     pixel_t pixel = {0xFF, 0x00, 0xFF, 0x00};
-    pixel_t pixel2 = {0xFF, 0x00, 0xFF, 0x00};
+    pixel_t pixel2 = {0x00, 0x00, 0xFF, 0x00};
 
     #if 1
     // Draw some lines
     for(int i = 0; i < 100; ++i){
     	putPixel(vid_buffer, pixel, 0, i);
     	putPixel(vid_buffer, pixel, 100, i);
-    	putPixel(vid_buffer, pixel, i, 0);
-    	putPixel(vid_buffer, pixel, i, 100);
+    	putPixel(vid_buffer, pixel2, i, 0);
+    	putPixel(vid_buffer, pixel2, i, 100);
+    	sleep(1);
     }
     #else
 
    	putPixel(vid_buffer, pixel, 0, 0);
    	putPixel(vid_buffer, pixel2, 4096, 0);
    	putPixel(vid_buffer, pixel2, 8192, 0);
-    
 
     #endif
 	
@@ -177,6 +181,13 @@ void read_FAT(){
 	kfree(buffer);
 }
 
+extern void syscall_interrupt_handler();
+
+void syscall_handler(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx)
+{
+	printf("EAX: %#x, EBX: %#x, ECX: %#x, EDX: %#x\n", eax, ebx, ecx, edx);
+}
+
 void init(multiboot_info_t* mb_ptr){
 
 	//asm volatile("xchgw %bx,%bx");
@@ -197,6 +208,12 @@ void init(multiboot_info_t* mb_ptr){
 
 	printf("HAL initialization done!\n");
 
+	printf("Installing keyboard\n");
+
+	keyboard_install (33);
+
+	keyboard_set_autorepeat(0x10, 1);
+
 	setvect (0,(void (*)(void))divide_by_zero_fault);
 	setvect (1,(void (*)(void))single_step_trap);
 	setvect (2,(void (*)(void))nmi_trap);
@@ -215,6 +232,8 @@ void init(multiboot_info_t* mb_ptr){
 	setvect (17,(void (*)(void))alignment_check_fault);
 	setvect (18,(void (*)(void))machine_check_abort);
 	setvect (19,(void (*)(void))simd_fpu_fault);
+
+	setvect(0x80, (void(*)(void))syscall_interrupt_handler);
 
 	//printf("CPU Vendor: %s\n", get_cpu_vendor());
 
@@ -283,12 +302,6 @@ void init(multiboot_info_t* mb_ptr){
 	printf("Initializing PCI\n");
 
 	pciInit();
-
-	printf("Installing keyboard\n");
-
-	keyboard_install (33);
-
-	keyboard_set_autorepeat(0x10, 1);
 	
 #if 0
 	printf("Initializing floppy driver\n");
@@ -348,6 +361,10 @@ void get_cmd (char* buf, int n) {
 
 		//! grab next char
 		key = getch ();
+
+
+		if(!isprint(keyboard_key_to_ascii(key)))
+			BufChar = 0;
 
 		//! end of command if enter is pressed
 		if (key==KEY_RETURN)
@@ -432,7 +449,7 @@ int run_cmd (char* cmd_buf) {
 		readRTC(&currentTime);
 
 		
-		printf("\nCurrent time:\n%0(2)i:%0(2)i:%0(2)i %0(2)i/%0(2)i/%0(4)i\n\n", 
+		printf("\nCurrent time and date:\n%0(2)i:%0(2)i:%0(2)i %0(2)i/%0(2)i/%0(4)i\n\n", 
 		currentTime.hour, 
 		currentTime.minute, 
 		currentTime.second, 
@@ -543,6 +560,103 @@ int run_cmd (char* cmd_buf) {
 		printf("\nDone\n");
 	}
 
+	else if(strcmp (cmd_buf, "proc") == 0){
+		char* filePath = "proc.elf";
+
+		printf("\nReading file %s\n", filePath);
+
+		FILE file;
+		FS_ERROR e;
+
+		e = fs_open_file(&file, filePath, 0);
+
+		if(e != 0)
+		{
+			printf("Could not open file: %s\n", fs_err_str(e));
+			fs_close_file(&file);
+			return;
+		}
+
+
+		// Make sure that we do have enough space in buffer.
+		char* buffer = (char*)kmalloc((file.fileLength) + 512);
+
+		int sectors_read = 0;
+
+		while(!file.eof){
+			e = fs_read_file(&file, buffer + 512*sectors_read, 0);
+			++sectors_read;
+		}	
+
+		fs_close_file(&file);
+
+		// Executabe header is always first.
+		Elf32_Ehdr* ehdr = (Elf32_Ehdr*) buffer;
+
+		if(is_elf(ehdr))
+		{
+			printf("Is Elf\n");
+		}
+		else
+		{
+			printf("Is not Elf\n");
+		}
+
+		if(ehdr->e_type == ET_EXEC)
+		{
+			printf("Is executable\n");
+		}
+
+		printf("%i\n", ehdr->e_shoff);
+
+		printf("%i\n", ehdr->e_shnum);
+
+		for(int i = 0; i < ehdr->e_shnum; ++i)
+		{
+			Elf32_Shdr* shdr = (Elf32_Shdr*) (buffer + ehdr->e_shoff + i*ehdr->e_shentsize);
+
+			serial_printf(COM1, "Section header %i:", i);
+
+			serial_printf(COM1, "Type: %i\n", shdr->sh_type);
+
+		}
+
+		printf("%i\n", ehdr->e_phoff);
+		printf("%i\n", ehdr->e_phnum);
+
+		for(int i = 0; i < ehdr->e_phnum; ++i)
+		{
+			Elf32_Phdr* phdr = (Elf32_Phdr*)(buffer + ehdr->e_phoff + i*ehdr->e_phentsize);
+
+			serial_printf(COM1, "Program header %i:", i);
+
+			serial_printf(COM1, "Type: %i\n", phdr->p_type);
+
+			if(phdr->p_type == PT_LOAD)
+			{
+				printf("Mem needed: %i bytes\n", phdr->p_memsz);
+
+				// Map a new memory block to requested virtual address.
+				vmmngr_mapPhysicalAddress(vmmngr_get_directory(), phdr->p_vaddr, (uint32_t)pmmngr_alloc_block(), I86_PTE_WRITABLE | I86_PTE_PRESENT);
+				
+				// Copy program to block.
+				memcpy((void*)phdr->p_vaddr, buffer + phdr->p_offset, phdr->p_memsz);
+			}
+
+		}
+
+		typedef int(*EntryFunc)(void);
+
+		EntryFunc entry = (EntryFunc)ehdr->e_entry;
+
+		int returnCode = entry();
+
+		printf("Returncode: %#x", returnCode);
+
+		// Free buffer when we are done.
+		kfree(buffer);
+	}
+
 	else if(strcmp (cmd_buf, "readfile") == 0){
 
 		char filePath[100] = {0};
@@ -608,7 +722,7 @@ int run_cmd (char* cmd_buf) {
 
 void run () {
 
-char	cmd_buf [100];
+	char cmd_buf [100];
 
 	while (1) {
 

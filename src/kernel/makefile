@@ -5,7 +5,8 @@ a20.o \
 monitor.o \
 panic.o \
 exception.o \
-int32.o
+int32.o \
+syscall.o
 
 SUBDIRS = 
 
