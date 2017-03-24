@@ -1,8 +1,8 @@
-#include "test.h"
+#include <stdio.h>
 
 int main(void)
 {
-	do_syscall();
-	
-	return 0xFF00FF;
+	puts("Hello World!\n");
+
+	return 0;
 }
