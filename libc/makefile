@@ -9,6 +9,7 @@ LIBC_INTERMEDIATE_DIR = $(LIBC_ROOT_DIR)/intermediate
 LIBC_OUTPUT_DIR = $(LIBC_ROOT_DIR)/lib
 
 LIBC_CCFLAGS = -c -ffreestanding -nostdlib -m32 -nostartfiles -I $(LIBC_INC_DIR)
+LIBC_LINKFLAGS = -ffreestanding -nostdlib -m32 -nostartfiles -I $(LIBC_INC_DIR)
 
 LIBC_TARGET_NAME = libc.a
 
@@ -22,7 +23,6 @@ export LIBC_OUTPUT_DIR
 export LIBC_CCFLAGS
 
 all: link
-	cp $(LIBC_INTERMEDIATE_DIR)/crt0.o $(LIBC_OUTPUT_DIR)
 
 link: subdirs
 	$(LIBC_AR) rc $(LIBC_OUTPUT_DIR)/$(LIBC_TARGET_NAME) $(wildcard $(LIBC_INTERMEDIATE_DIR)/*.o)

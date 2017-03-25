@@ -1,12 +1,11 @@
-#ifndef _LIBC_STDIO_H
-#define _LIBC_STDIO_H
+#ifndef _LIBC_VA_LIST_H
+#define _LIBC_VA_LIST_H
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-void putchar(char c); 
-void puts(const char* str);
+typedef unsigned char *va_list;
 
 #if defined(__cplusplus)
 } /* extern "C" */

@@ -3,10 +3,29 @@
 
 #include <lib/stdint.h>
 
+/**
+ * Unsigned Program Address
+ */
 typedef uintptr_t Elf32_Addr;
+
+/**
+ * Unsigned Medium Integer
+ */
 typedef uint16_t Elf32_Half;
+
+/**
+ * Unsigned File Offset
+ */
 typedef uint32_t Elf32_Off;
+
+/**
+ * Signed Large Integer
+ */
 typedef int32_t Elf32_Sword;
+
+/**
+ * Unsigned Large Integer
+ */
 typedef uint32_t Elf32_Word;
 
 #define ET_NONE 0
@@ -232,5 +251,7 @@ typedef struct
 }__attribute__((packed)) Elf32_Dyn; 
 
 int is_elf(Elf32_Ehdr* hdr);
+
+unsigned long elf_hash(const unsigned char* name);
 
 #endif

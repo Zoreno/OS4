@@ -1,5 +1,5 @@
-SUBDIRS = stdio string
-OBJECTS = crt0.o crt1.o crti.o crtn.o libmain.o
+SUBDIRS = 
+OBJECTS = putchar.o puts.o
 
 all: subdirs $(OBJECTS)
 

@@ -1,6 +1,6 @@
 SUBDIRS = 
 
-OBJECTS = elf.o
+OBJECTS = elf.o elfloader.o
 
 CC = gcc
 CFLAGS=-g3 -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -I $(INC_DIR)

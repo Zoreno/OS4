@@ -8,6 +8,9 @@
 .extern __g_exit
 
 _start:
+	# Call initialization
+	call	_init
+
 	# Call main 
 	call 	__g_main
 

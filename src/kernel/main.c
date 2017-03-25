@@ -21,6 +21,8 @@
 
 #include <elf/elf.h>
 
+#include <proc/elfloader.h>
+
 /*
 
 	Known Bugs:
@@ -182,26 +184,6 @@ void read_FAT(){
 }
 
 extern void syscall_interrupt_handler();
-
-#define DEBUG_SYSCALL 0
-
-void syscall_handler(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx)
-{
-#if DEBUG_SYSCALL
-	printf("EAX: %#x, EBX: %#x, ECX: %#x, EDX: %#x\n", eax, ebx, ecx, edx);
-#endif
-
-	switch(eax)
-	{
-	case 0:
-	{
-		putch((char)ebx);
-	}
-	break;
-	default:
-		printf("Invalid syscall instruction");
-	}
-}
 
 void init(multiboot_info_t* mb_ptr){
 
@@ -436,6 +418,8 @@ void get_cmd (char* buf, int n) {
 
 	//! null terminate the string
 	buf [i] = '\0';
+
+	putch('\n');
 }
 
 typedef struct{
@@ -643,10 +627,6 @@ int run_cmd (char* cmd_buf) {
 		{
 			Elf32_Phdr* phdr = (Elf32_Phdr*)(buffer + ehdr->e_phoff + i*ehdr->e_phentsize);
 
-			serial_printf(COM1, "Program header %i:", i);
-
-			serial_printf(COM1, "Type: %i\n", phdr->p_type);
-
 			if(phdr->p_type == PT_LOAD)
 			{
 				printf("Mem needed: %i bytes\n", phdr->p_memsz);
@@ -670,6 +650,16 @@ int run_cmd (char* cmd_buf) {
 
 		// Free buffer when we are done.
 		kfree(buffer);
+	}
+
+	else if (strcmp(cmd_buf, "newproc") == 0)
+	{
+		EntryFunc entry = loadELF("proc.elf");
+
+		int returnCode = entry();
+
+		printf("Returncode: %#x", returnCode);
+
 	}
 
 	else if(strcmp (cmd_buf, "readfile") == 0){

@@ -6,7 +6,8 @@ monitor.o \
 panic.o \
 exception.o \
 int32.o \
-syscall.o
+syscall.o \
+syscall_handler.o
 
 SUBDIRS = 
 

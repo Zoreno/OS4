@@ -1,5 +1,5 @@
-SUBDIRS = stdio string
-OBJECTS = crt0.o crt1.o crti.o crtn.o libmain.o
+SUBDIRS = 
+OBJECTS = memchr.o memcmp.o memcpy.o memmove.o memset.o strlen.o
 
 all: subdirs $(OBJECTS)
 

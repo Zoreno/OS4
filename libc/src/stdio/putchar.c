@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-void putch(char c)
+void putchar(char c)
 {
 	// Push frame on stack
 	asm volatile ("pushal");

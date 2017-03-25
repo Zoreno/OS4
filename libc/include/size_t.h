@@ -1,12 +1,11 @@
-#ifndef _LIBC_STDIO_H
-#define _LIBC_STDIO_H
+#ifndef _LIBC_SIZE_T_H
+#define _LIBC_SIZE_T_H
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-void putchar(char c); 
-void puts(const char* str);
+typedef unsigned int size_t;
 
 #if defined(__cplusplus)
 } /* extern "C" */

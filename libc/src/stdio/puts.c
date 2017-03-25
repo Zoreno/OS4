@@ -7,5 +7,5 @@ void puts(const char* str)
 	int pos = 0;
 
 	while(string[pos])
-		putch(string[pos++]);
+		putchar(string[pos++]);
 }
