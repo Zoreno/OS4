@@ -1061,7 +1061,7 @@ void floppy_disk_set_dma(const int addr)
 void floppy_disk_install(const int irq)
 {
 	// Install IRQ handler
-	setvect(irq, i86_floppy_irq);
+	setvect(irq, i86_floppy_irq, 0);
 
 	// Reset floppy disk
 	floppy_disk_reset();

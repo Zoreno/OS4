@@ -1,5 +1,5 @@
 SUBDIRS = 
-OBJECTS = memchr.o memcmp.o memcpy.o memmove.o memset.o strlen.o
+OBJECTS = memchr.o memcmp.o memcpy.o memmove.o memset.o strlen.o  strcpy.o strncpy.o
 
 all: subdirs $(OBJECTS)
 

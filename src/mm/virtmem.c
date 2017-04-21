@@ -334,6 +334,17 @@ pdirectory* vmmngr_createAddressSpace() {
 	return dir;
 }
 
+pdirectory* vmmngr_cloneAddressSpace()
+{
+	pdirectory* dir = vmmngr_createAddressSpace();
+
+	pdirectory* current = vmmngr_get_directory();
+
+	memcpy(&dir->m_entries[768], &current->m_entries[768], 256*sizeof(pd_entry));
+
+	return dir;
+}
+
 void* vmmngr_getPhysicalAddress(pdirectory* dir, uint32_t virt) {
 	pd_entry* pagedir = dir->m_entries;
 	if (pagedir[virt >> 22] == 0)

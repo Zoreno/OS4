@@ -76,6 +76,9 @@ StartInHigherHalf:
     ; position-independent code or funny business with virtual-to-physical address translation
     ; should be necessary. We now have a higher-half kernel.
     mov esp, stack+STACKSIZE           ; set up the stack
+
+	push esp
+
     push eax                           ; pass Multiboot magic number
  
     ; pass Multiboot info structure -- WARNING: This is a physical address and may not be

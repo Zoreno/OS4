@@ -2,6 +2,9 @@
 
 void putchar(char c)
 {
+	if(!c)
+		return;
+
 	// Push frame on stack
 	asm volatile ("pushal");
 

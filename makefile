@@ -33,7 +33,7 @@ clean:
 link: subdirs
 	$(CC_DIR)/i686-elf-ld $(LDFLAGS) -o $(KERNEL_OUTPUT_DIR)/kernel.elf $(wildcard $(KERNEL_OBJ_DIR)/*.o)
 	@echo Generating disassembly...
-	objdump -S  $(KERNEL_OUTPUT_DIR)/kernel.elf > $(KERNEL_DISASM_DIR)/kernel_full.txt
+	objdump -S  --disassemble $(KERNEL_OUTPUT_DIR)/kernel.elf > $(KERNEL_DISASM_DIR)/kernel_full.txt
 
 .PHONY: subdirs $(SUBDIRS)
 

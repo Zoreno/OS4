@@ -2,6 +2,8 @@
 #include <lib/stdio.h>
 #include <lib/string.h>
 #include <hal/hal.h>
+#include <hal/idt.h>
+#include <hal/tss.h>
 #include <kernel/exception.h>
 #include <kernel/multiboot.h>
 #include <lib/size_t.h>
@@ -22,6 +24,8 @@
 #include <elf/elf.h>
 
 #include <proc/elfloader.h>
+
+#include <proc/task.h>
 
 /*
 
@@ -185,7 +189,7 @@ void read_FAT(){
 
 extern void syscall_interrupt_handler();
 
-void init(multiboot_info_t* mb_ptr){
+void init(multiboot_info_t* mb_ptr, unsigned int esp){
 
 	//asm volatile("xchgw %bx,%bx");
 
@@ -211,26 +215,26 @@ void init(multiboot_info_t* mb_ptr){
 
 	keyboard_set_autorepeat(0x10, 1);
 
-	setvect (0,(void (*)(void))divide_by_zero_fault);
-	setvect (1,(void (*)(void))single_step_trap);
-	setvect (2,(void (*)(void))nmi_trap);
-	setvect (3,(void (*)(void))breakpoint_trap);
-	setvect (4,(void (*)(void))overflow_trap);
-	setvect (5,(void (*)(void))bounds_check_fault);
-	setvect (6,(void (*)(void))invalid_opcode_fault);
-	setvect (7,(void (*)(void))no_device_fault);
-	setvect (8,(void (*)(void))double_fault_abort);
-	setvect (10,(void (*)(void))invalid_tss_fault);
-	setvect (11,(void (*)(void))no_segment_fault);
-	setvect (12,(void (*)(void))stack_fault);
-	setvect (13,(void (*)(void))general_protection_fault);
-	setvect (14,(void (*)(void))page_fault);
-	setvect (16,(void (*)(void))fpu_fault);
-	setvect (17,(void (*)(void))alignment_check_fault);
-	setvect (18,(void (*)(void))machine_check_abort);
-	setvect (19,(void (*)(void))simd_fpu_fault);
+	setvect (0,(void (*)(void))divide_by_zero_fault, 0);
+	setvect (1,(void (*)(void))single_step_trap, 0);
+	setvect (2,(void (*)(void))nmi_trap, 0);
+	setvect (3,(void (*)(void))breakpoint_trap, 0);
+	setvect (4,(void (*)(void))overflow_trap, 0);
+	setvect (5,(void (*)(void))bounds_check_fault, 0);
+	setvect (6,(void (*)(void))invalid_opcode_fault, 0);
+	setvect (7,(void (*)(void))no_device_fault, 0);
+	setvect (8,(void (*)(void))double_fault_abort, 0);
+	setvect (10,(void (*)(void))invalid_tss_fault, 0);
+	setvect (11,(void (*)(void))no_segment_fault, 0);
+	setvect (12,(void (*)(void))stack_fault, 0);
+	setvect (13,(void (*)(void))general_protection_fault, 0);
+	setvect (14,(void (*)(void))page_fault, 0);
+	setvect (16,(void (*)(void))fpu_fault, 0);
+	setvect (17,(void (*)(void))alignment_check_fault, 0);
+	setvect (18,(void (*)(void))machine_check_abort, 0);
+	setvect (19,(void (*)(void))simd_fpu_fault, 0);
 
-	setvect(0x80, (void(*)(void))syscall_interrupt_handler);
+	setvect(0x80, (void(*)(void))syscall_interrupt_handler, I86_IDT_DESC_RING3);
 
 	//printf("CPU Vendor: %s\n", get_cpu_vendor());
 
@@ -326,6 +330,8 @@ void init(multiboot_info_t* mb_ptr){
 	vesa_get_video_info();
 
 	read_FAT();
+	
+	install_tss (5,0x10,esp);
 
 	printf("Kernel initialization done!\n");
 }
@@ -654,12 +660,25 @@ int run_cmd (char* cmd_buf) {
 
 	else if (strcmp(cmd_buf, "newproc") == 0)
 	{
-		EntryFunc entry = loadELF("proc.elf");
+		ElfImage img = loadELF("proc.elf");
 
-		int returnCode = entry();
+		if(img.valid)
+		{		
+			EntryFunc entry = img.entry;
 
-		printf("Returncode: %#x", returnCode);
+			printf("Stack size: %i\n", img.stackSize);
+		
+			int returnCode = entry();
 
+			printf("Returncode: %#x", returnCode);
+		}
+
+	}
+
+	else if (strcmp(cmd_buf, "process") == 0)
+	{
+		createProcess("proc.elf", 0);
+		//executeProcess();
 	}
 
 	else if(strcmp (cmd_buf, "readfile") == 0){
@@ -740,24 +759,45 @@ void run () {
 	}
 }
 
+void idle_func()
+{
+	printProcessTree();
+
+	while(1)
+	{
+		char c = getch();
+		if(c == 'p')
+			printProcessTree();
+
+		if(c == 'n')
+			createProcess("proc.elf", 0);
+	}		
+}
+
+
 /** kernel_main:
  *  The C entry point of the kernel.
  *  
  *	@return 	0 when done
  */
-int kernel_main(unsigned int ebx)
+int kernel_main(unsigned int ebx, unsigned int eax, unsigned int esp)
 {
 	multiboot_info_t* mb_ptr = (multiboot_info_t*) (ebx);
 
-	init(mb_ptr);
+	init(mb_ptr, esp);
 
 	clearScreen();
 
-	printf("Welcome to OS4 kernel text based GUI. Developed by Joakim Bertils.\n");
+	initialize_scheduler();
 
-	run ();
+	Thread* idleThread = createThread(getKernelProcess(), idle_func, 1);
 
-	printf("\nExit command recieved\n");
+	thread_execute(idleThread);
+
+	//printf("Welcome to OS4 kernel text based GUI. Developed by Joakim Bertils.\n");
+	//run ();
+
+	//printf("\nExit command recieved\n");
 
 	for(;;);
 

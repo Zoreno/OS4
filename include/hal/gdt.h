@@ -4,7 +4,7 @@
 #include <lib/stdint.h>
 
 // Maximum number of descriptors
-#define MAX_DESCRIPTORS 		3U
+#define MAX_DESCRIPTORS 		6U
 
 #define I86_GDT_DESC_ACCESS		0x0001
 #define I86_GDT_DESC_READWRITE	0x0002

@@ -6,7 +6,9 @@ idt.o \
 flush.o \
 pic.o \
 pit.o \
-dma.o
+dma.o \
+tss.o \
+tss_flush.o
 
 SUBDIRS =
 

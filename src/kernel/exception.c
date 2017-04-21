@@ -1,5 +1,6 @@
 #include <kernel/exception.h>
 #include <kernel/panic.h>
+#include <lib/stdint.h>
 
 void divide_by_zero_fault (
 	unsigned int cs, 
@@ -114,6 +115,7 @@ void stack_fault (
 	kernel_panic("Stack fault");
 	for(;;);
 }
+
 
 void general_protection_fault (
 	unsigned int cs, 

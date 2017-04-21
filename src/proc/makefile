@@ -1,6 +1,6 @@
 SUBDIRS = 
 
-OBJECTS = elf.o elfloader.o
+OBJECTS = elf.o elfloader.o task.o task_switch.o
 
 CC = gcc
 CFLAGS=-g3 -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -I $(INC_DIR)

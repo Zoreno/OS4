@@ -5,7 +5,6 @@ extern int main();
 // C code entry point
 int __g_main()
 {
-	
 	int returnCode;
 
 	returnCode = main();
@@ -16,6 +15,6 @@ int __g_main()
 // Called at program exit
 int __g_exit()
 {
-	
+
 }
 

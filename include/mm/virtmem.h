@@ -170,6 +170,8 @@ void vmmngr_unmapPhysicalAddress(pdirectory* dir, uint32_t virt);
 
 pdirectory* vmmngr_createAddressSpace();
 
+pdirectory* vmmngr_cloneAddressSpace();
+
 void* vmmngr_getPhysicalAddress(pdirectory* dir, uint32_t virt);
 
 #endif

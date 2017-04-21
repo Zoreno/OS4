@@ -23,6 +23,17 @@ _start:
 	# Pop return code
 	pop		%eax
 
-	ret
+	# Move return code to EBX
+	movl	%eax, %ebx
+
+	# Move terminate process command to EAX
+	movl	$0x1, %eax
+
+	# Call kernel
+	int		$0x80
+
+	# This should never happen
+hang:
+	jmp 	hang	
 
 .size _start, . - _start

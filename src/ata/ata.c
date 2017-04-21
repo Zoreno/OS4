@@ -254,7 +254,7 @@ unsigned int BAR4) {
  
    int i, j, k, count = 0;
 
-   setvect (46,(void (*)(void))ide_irq);
+   setvect (46,(void (*)(void))ide_irq, 0);
  
    // 1- Detect I/O Ports which interface IDE Controller:
    channels[ATA_PRIMARY  ].base  = (BAR0 & 0xFFFFFFFC) + 0x1F0 * (!BAR0);

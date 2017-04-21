@@ -8,4 +8,6 @@ void puts(const char* str)
 
 	while(string[pos])
 		putchar(string[pos++]);
+
+	return;
 }

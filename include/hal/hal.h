@@ -21,7 +21,7 @@ void disable();
 
 typedef void(*irq_vect)(void);
 
-void setvect(int intno, irq_vect);
+void setvect(int intno, irq_vect vect, int flags);
 
 void (*getvect(int intno))();
 

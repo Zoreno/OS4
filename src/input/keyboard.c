@@ -598,7 +598,7 @@ void keyboard_reset_system(){
 
 void keyboard_install(int irq){
 
-	setvect(irq, i86_keyboard_irq);
+	setvect(irq, i86_keyboard_irq, 0);
 
 	_status.bat_res = 1;
 	_scancode = 0;

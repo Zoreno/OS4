@@ -85,8 +85,8 @@ void disable(){
 	asm volatile("cli");
 }
 
-void setvect(int intno, irq_vect vect){
-	i86_install_ir (intno, I86_IDT_DESC_PRESENT | I86_IDT_DESC_BIT32,
+void setvect(int intno, irq_vect vect, int flags){
+	i86_install_ir (intno, I86_IDT_DESC_PRESENT | I86_IDT_DESC_BIT32 | flags,
 		0x8, vect);
 }
 
