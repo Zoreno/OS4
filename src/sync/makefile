@@ -1,6 +1,6 @@
-SUBDIRS = libk kernel hal mm input floppy serial pci ata vbe acpi cmos vfs proc sync gui util
+SUBDIRS =
 
-OBJECTS =
+OBJECTS = mutex.o
 
 CC = $(CC_DIR)/i686-elf-gcc
 CFLAGS=-g -m32 -nostdlib -nostdinc -fverbose-asm -fno-builtin -fno-stack-protector -I $(INC_DIR)

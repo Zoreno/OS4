@@ -42,9 +42,7 @@ typedef struct _TrapFrame
 
 typedef unsigned int ktime_t;
 
-#define THREAD_RUN 1
-#define THREAD_BLOCK_SLEEP 2
-#define THREAD_BLOCK_STATE THREAD_BLOCK_SLEEP
+#define THREAD_STATE_SLEEP		1
 
 struct _Process;
 
@@ -86,7 +84,10 @@ typedef struct _Thread
 	uint32_t			priority;
 	int 				state;
 	TrapFrame*			frame;
+
+	ktime_t				sleepTimeStart;
 	ktime_t 			sleepTimeDelta;
+	ktime_t				sleepTimeEnd;
 
 	uint32_t			is_kernel;
 	
@@ -101,7 +102,7 @@ typedef struct _Process
 	unsigned int		id;
 	int					priority;
 	pdirectory*			pageDirectory;
-	int 				state;
+	uint32_t 			state;
 	uint32_t			imageBase;
 	uint32_t			imageSize;
 
@@ -129,6 +130,8 @@ extern Thread* createThread(Process* process, void(*entry)(void), int is_kernel)
 void TerminateThread(Thread* thread);
 
 void TerminateProcess(int retCode);
+
+void thread_sleep(uint32_t ticks);
 
 void initialize_scheduler();
 

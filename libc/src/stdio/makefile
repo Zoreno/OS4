@@ -7,7 +7,7 @@ all: subdirs $(OBJECTS)
 	$(LIBC_CC) $(LIBC_CCFLAGS) -o $(LIBC_INTERMEDIATE_DIR)/$@ $<
 
 .s.o:
-	$(LIBC_CC) $(LIBC_CCFLAGS) -o $(LIBC_INTERMEDIATE_DIR)/$@ $<
+	nasm $(LIBC_ASFLAGS) -o $(LIBC_INTERMEDIATE_DIR)/$@ $<
 
 .PHONY: subdirs $(SUBDIRS)
 

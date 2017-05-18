@@ -1,12 +1,12 @@
 
-.code32
+[bits 32]
 
-.section .init
+section .init
 
-	pop		%ebp
+	pop		ebp
 	ret
 
-.section .fini
-	
-	pop		%ebp
+section .fini
+
+	pop		ebp
 	ret

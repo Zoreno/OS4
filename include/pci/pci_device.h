@@ -99,66 +99,250 @@ typedef struct _CommandField
 
 } PciCommand_t;
 
+/**
+ * Layout of the status register
+ */
 typedef struct _StatusField
 {
+	/**
+	* Reserved
+	*/
 	uint16_t reserved : 3;
-	uint16_t InteruptStatus : 1;
+
+	/**
+	* Represents the state of the device's interrupt signal.
+	*/
+	uint16_t InterruptStatus : 1;
+
+	/**
+	 * If set to one, the device implements the pointer for a new capabilities
+	 * linked list at offset 0x34.
+	 */
 	uint16_t CapabilitiesList : 1;
+
+	/**
+	* If set to one, the device runs at 66 MHz.
+	*/
 	uint16_t Capable66MHz : 1;
+
+	/**
+	* Reserved
+	*/
 	uint16_t reserved2 : 1;
+
+	/**
+	* The device supports fast back to back transactions that are not from the
+	* same agent.
+	*/
 	uint16_t FastBackToBackCapable : 1;
 
+	/**
+	* Master data parity error.
+	*/
 	uint16_t MasterDataParityError : 1;
+
+	/**
+	* Devsel Timing
+	*/
 	uint16_t DEVSELTiming : 2;
+
+	/**
+	* Set to one whenever a target device terminates a transaction with
+	* Target-Abort.
+	*/
 	uint16_t SignaledTargetAbort : 1;
+
+	/**
+	* Set to one by a master device whenever it's transaction is terminated 
+	* with Target-Abort.
+	*/
 	uint16_t RecievedTargetAbort : 1;
+
+	/**
+	* Set to one by a master device whenever it's transaction is terminated 
+	* with Master-Abort.
+	*/
 	uint16_t RecievedMasterAbort : 1;
+
+	/**
+	* Set to one whenever the device asserts SERR#.
+	*/
 	uint16_t SignaledSystemError : 1;
+
+	/**
+	* Set to one whenever the device detects a parity error.
+	*/
 	uint16_t DetectedParityError : 1;
 } PciStatus_t;
 
+/**
+ * PCI device info struct
+ */
 typedef struct _PciDeviceInfo
 {
+	/**
+	* Indicates that the device is present.
+	*/
 	uint8_t present;
 
+	/**
+	* Identifies the manufacturer of the device. A value of 0xFFFF indicates a 
+	* non-existing device.
+	*/
 	uint16_t vendorID;
+
+	/**
+	* Identifies the particular device.
+	*/
 	uint16_t deviceID;
 
+	/**
+	* Provides control over a device's ability to generate and respond to PCI
+	* cycles.
+	*/
 	union { uint16_t command_w; PciCommand_t command; };
-	
+
+	/**
+	* A register used to record status information for PCI bus related events.
+	*/
 	union { uint16_t status_w; PciStatus_t status; };
-	
+
+	/**
+	* Specifies a revision identifier for a particular device.
+	*/
 	uint8_t revisionID;
+
+	/**
+	* A read-only register that specifies which register-level programming
+	* interface has, if any.
+	*/
 	uint8_t progIntf;
+
+	/**
+	* A read-only register that specifies the specific function the device
+	* performs.
+	*/
 	uint8_t subClass;
+
+	/**
+	* A read-only register that specifies the type of function the device
+	* performs.
+	*/
 	uint8_t classCode;
 
+	/**
+	* Specifies the system cache line size in 32-bit units.
+	*/
 	uint8_t cacheLineSize;
+
+	/**
+	* Specifies the latency timer in units of PCI bus clocks.
+	*/
 	uint8_t latencyTimer;
+
+	/**
+	* Specifies the layout of the rest of the header beginning at offset 0x10. 
+	* MSB bit specifies if the device has multiple functions.
+	*/
 	uint8_t headerType;
+
+	/**
+	* Represents the status and allows control of the device's built-in self-test.
+	*/
 	uint8_t BIST;
 	
 	union
 	{
+		/**
+		 * These fields are applicable if headerType is 0x00.
+		 */
 		struct _PCI_HEADER_TYPE_0 {
+
+			/**
+			 * Base Address Registers (BARs)
+			 */
 			uint32_t BaseAddresses[6];
+
+			/**
+			 * CardBus CIS Pointer.
+			 */
 			uint32_t CIS;
+
+			/**
+			 * SubVendor ID
+			 */
 			uint16_t SubVendorID;
+
+			/**
+			 * Subsystem ID
+			 */
 			uint16_t SubSystemID;
+
+			/**
+			 * Expansion ROM base address
+			 */
 			uint32_t ROMBaseAddress;
+
+			/**
+			 * Capabilities pointer.
+			 */
 			uint8_t CapabilitiesPtr;
+
+			/**
+			 * Reserved
+			 */
 			uint8_t Reserved2[7];
+
+			/**
+			 * Specifies which input of the system interrupt controller the
+			 * device's interrupt pin is connected to.
+			 */
 			uint8_t InterruptLine;
+
+			/**
+			 * Specifies which interrupt pin the device uses.
+			 */
 			uint8_t InterruptPin;
+
+			/**
+			 * A read-only register that specifies the burst period length.
+			 */
 			uint8_t MinimumGrant;
+
+			/**
+			 * A read-only register that specifies how often the device needs 
+			 * access to the PCI bus.
+			 */
 			uint8_t MaximumLatency;
 		} type0;
 
+		/**
+		 * These fields are applicable if headerType is 0x01.
+		 */
 		struct _PCI_HEADER_TYPE_1 {
+			/**
+			 * Base address registers.
+			 */
 			uint32_t BaseAddresses[2];
+
+			/**
+			 * Primary bus number
+			 */
 			uint8_t PrimaryBusNumber;
+
+			/**
+			 * Secondary bus number.
+			 */
 			uint8_t SecondaryBusNumber;
+
+			/**
+			 * Subordinate bus number.
+			 */
 			uint8_t SubordinateBusNumber;
+
+			/**
+			 * Secondary latency timer.
+			 */
 			uint8_t SecondaryLatencyTimer;
 			uint8_t IOBase;
 			uint8_t IOLimit;
@@ -178,6 +362,9 @@ typedef struct _PciDeviceInfo
 			uint16_t BridgeControl;
 		} type1;
 
+		/**
+		 * These fields are applicable if headerType is 0x02.
+		 */	
 		struct _PCI_HEADER_TYPE_2 {
 			uint32_t BaseAddress;
 			uint8_t CapabilitiesPtr;

@@ -135,7 +135,7 @@ void page_fault (
     ){
 	asm volatile ("cli");
 	asm volatile ("sub $4, %ebp");
-
+	
 	int faultAddr;
 
 	asm volatile ("mov %%cr2, %0" : "=r"(faultAddr));

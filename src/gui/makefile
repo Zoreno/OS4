@@ -1,5 +1,8 @@
 OBJECTS = \
-keyboard.o mouse.o mouse_irq.o
+rendering_context.o \
+window.o \
+desktop.o \
+rect.o
 
 SUBDIRS =
 

@@ -40,7 +40,7 @@ uint32_t pci_read_l(uint32_t id, uint32_t reg)
 
 	outportl(PCI_CONFIG_ADDR, addr);
 
-	return inportw(PCI_CONFIG_DATA);
+	return inportl(PCI_CONFIG_DATA);
 }
 
 void pci_write_b(uint32_t id, uint32_t reg, uint8_t data)

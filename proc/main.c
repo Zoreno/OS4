@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-int main(void)
+int main()
 {
 	puts("Hello World!\n");
 
-	return 0x128;
+	return 0x335;
 }

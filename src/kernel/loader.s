@@ -1,5 +1,5 @@
 global _loader                          ; Make entry point visible to linker.
-extern kernel_main                            ; kernel_main is defined elsewhere
+extern kernel_main                      ; kernel_main is defined elsewhere
  
 ; setting up the Multiboot header - see GRUB docs for details
 MODULEALIGN equ 1<<0                   ; align loaded modules on page boundaries
@@ -34,12 +34,14 @@ BootPageDirectory:
     times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0
  
  
-section .text
+section .__mbHeader
 align 4
 MultiBootHeader:
     dd MAGIC
     dd FLAGS
     dd CHECKSUM
+
+section .text
  
 ; reserve initial kernel stack space -- thats 16k.
 STACKSIZE equ 0x4000

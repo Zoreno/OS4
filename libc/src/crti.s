@@ -1,15 +1,16 @@
-.section .init
-.global _init
+section .init
 
-.code32
+[global _init]
+
+[bits 32]
 
 _init:
-	push	%ebp
-	movl	%esp, %ebp
+	push	ebp
+	mov		ebp, esp
 
-.section .fini
-.global _fini
+section .fini
+[global _fini]
 
 _fini:
-	push	%ebp
-	movl	%esp, %ebp
+	push	ebp
+	mov		ebp, esp

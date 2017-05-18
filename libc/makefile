@@ -10,6 +10,7 @@ LIBC_OUTPUT_DIR = $(LIBC_ROOT_DIR)/lib
 
 LIBC_CCFLAGS = -c -ffreestanding -nostdlib -m32 -nostartfiles -I $(LIBC_INC_DIR)
 LIBC_LINKFLAGS = -ffreestanding -nostdlib -m32 -nostartfiles -I $(LIBC_INC_DIR)
+LIBC_ASFLAGS = -felf32
 
 LIBC_TARGET_NAME = libc.a
 
@@ -21,6 +22,7 @@ export LIBC_INC_DIR
 export LIBC_INTERMEDIATE_DIR
 export LIBC_OUTPUT_DIR
 export LIBC_CCFLAGS
+export LIBC_ASFLAGS
 
 all: link
 

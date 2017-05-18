@@ -20,7 +20,7 @@ syscall_interrupt_handler:
 	add 	esp, 16			; Restore stack
 
 	push 	eax				; Push EAX
-	mov 	eax, 0x23		; Load User Data Selector
+	mov 	eax, 0x10		; Load User Data Selector
 	mov 	ds, ax			; Move it into Selector register
 	pop 	eax				; Restore EAX
 

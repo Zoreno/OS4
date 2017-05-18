@@ -5,7 +5,7 @@
 #include <lib/string.h>
 #include <lib/stdio.h>
 
-#define SERIAL_PCI_OUTPUT 0
+#define SERIAL_PCI_OUTPUT 1
 
 #define PCI_MAKE_ID(bus,dev,func) (((bus) << 16) | ((dev) << 11) | ((func) << 8))
 

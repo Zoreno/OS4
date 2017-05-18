@@ -17,5 +17,6 @@ void kernel_panic (const char* fmt, ...){
 
 	va_end(args);
 
+	serial_printf(COM1, "[KERNEL_PANIC]: %s\n", buf);
 	printf("[KERNEL_PANIC]: %s\n", buf);
 }

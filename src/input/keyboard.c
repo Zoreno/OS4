@@ -278,7 +278,7 @@ void i86_keyboard_irq(){
 	static int _extended = 0;
 
 	int code = 0;
-
+	
 	// Check if there is anything in output buffer
 	if(keyboard_ctrl_read_status() & KEYBOARD_CTRL_STATS_MASK_OUT_BUF){
 

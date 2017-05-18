@@ -6,6 +6,7 @@
 #include <mm/virtmem.h>
 
 #include <lib/string.h>
+#include <lib/stdio.h>
 
 #include <proc/elfloader.h>
 
@@ -49,6 +50,14 @@ void* create_user_stack();
 
 extern void scheduler_isr();
 void sheduler_tick();
+
+extern uint32_t _pit_ticks;
+
+uint32_t sched_current_time = 0;
+
+void thread_set_state(Thread* thread, uint32_t state);
+uint32_t thread_get_state(Thread* thread, uint32_t state);
+void thread_clear_state(Thread* thread, uint32_t state);
 
 //=============================================================================
 // Implementation
@@ -179,7 +188,7 @@ void mapKernelSpace(pdirectory* addressSpace)
 	
 }
 
-#define KERNEL_STACK_ALLOC_BASE 0xE0000000
+#define KERNEL_STACK_ALLOC_BASE 0xF0000000
 
 int _kernel_stack_index = 0;
 
@@ -237,7 +246,7 @@ int createProcess(char* appname, int is_kernel)
 	is_kernel = KERNEL_THREAD;  // For now
 
 	asm volatile("cli");
-	printf("Creating Process\n");
+	//printf("Creating Process\n");
 
 	pdirectory* addressSpace = 0;
 	Process* process = 0;
@@ -265,12 +274,12 @@ int createProcess(char* appname, int is_kernel)
 	process->state = PROCESS_STATE_ACTIVE;
 	process->is_kernel = is_kernel;
 
-	printf("Creating main thread\n");
+	//printf("Creating main thread\n");
 
 	// Setup the main thread.
 	mainThread = createThread(process, img.entry, is_kernel);
 
-	printf("Process done.\n");
+	//printf("Process done.\n");
 
 	// Return the process ID
 
@@ -299,7 +308,7 @@ Thread* getLastThread(Process* process)
 
 Thread* createThread(Process* process, void(*entry)(void), int is_kernel)
 {
-	printf("Creating Thread\n");
+	//printf("Creating Thread\n");
 
 	TrapFrame* frame;
 	Thread* thread;
@@ -321,7 +330,7 @@ Thread* createThread(Process* process, void(*entry)(void), int is_kernel)
 		esp = create_user_stack();
 	}
 
-	printf("%#x\n", esp);
+	//printf("%#x\n", esp);
 
 	thread = (Thread*)kmalloc(sizeof(Thread));
 	memset(thread, 0, sizeof(Thread));
@@ -336,7 +345,6 @@ Thread* createThread(Process* process, void(*entry)(void), int is_kernel)
 	frame->eip = (uint32_t)entry;
 	frame->ebp = 0;
 	frame->esp = esp;
-	frame->esp = 0;
 	frame->esi = 0;
 	frame->edi = 0;
 	frame->edx = 0;
@@ -368,7 +376,7 @@ Thread* createThread(Process* process, void(*entry)(void), int is_kernel)
 	thread->id = getNextFreeID();
 	thread->parent = process;
 	thread->priority = 1;
-	thread->state = THREAD_RUN;
+	thread->state = 0;
 	thread->sleepTimeDelta = 0;
 
 	thread->is_kernel = is_kernel;
@@ -415,35 +423,64 @@ void thread_execute(Thread* t)
 	asm volatile ("iret");
 }
 
+Thread* find_next_thread(Thread* thread)
+{
+	// Return next thread if there is one.
+	if(thread->nextThread)
+	{
+		return thread->nextThread;
+	}
+
+	Process* process = thread->parent;
+
+	if(process->nextProcess)
+	{
+		process = process->nextProcess;
+
+		if(process->firstThread)
+		{
+			return process->firstThread;
+		}
+	}
+
+	process = _rootProcess;
+
+	return process->firstThread;
+}
+
 void dispatch()
 {
 	Thread* t = getCurrentThread();
-
-	// If there is a next thread, switch to it.
-	if(t->nextThread)
-	{
-		_currentThread = t->nextThread;
-		return;	
-	}
 	
-	// Else, find the next process.
-	Process* p = t->parent;
-	
-	if(p->nextProcess)
+	int thread_found = 0;
+
+	while(!thread_found)
 	{
-		_currentProcess = p->nextProcess;
-		_currentThread = _currentProcess->firstThread;
-		return;
+	   	t = find_next_thread(t);
+
+		if(!thread_get_state(t, THREAD_STATE_SLEEP))
+	   	{
+			thread_found = 1;
+			break;
+		}
+
+		if(t->sleepTimeEnd < sched_current_time)
+		{
+			thread_clear_state(t, THREAD_STATE_SLEEP);
+			thread_found = 1;
+			break;
+		}
 	}
 
-	// Else, we jump back to the the root process.
-
-	_currentProcess = _rootProcess;
-	_currentThread = _rootProcess->firstThread;
+	_currentThread = t;
+	_currentProcess = t->parent;
 }
 
 void scheduler_tick()
 {
+	// This have to be moved or based on an independent source.
+	sched_current_time = _pit_ticks++;
+	
 	dispatch();
 }
 
@@ -466,7 +503,7 @@ void TerminateThread(Thread* thread)
 		prevThread->nextThread = thread->nextThread;
 	}
 
-	printf("Terminating thread %i\n", thread->id);
+	//printf("Terminating thread %i\n", thread->id);
 
 	// TODO: Unmap stack
 
@@ -475,6 +512,8 @@ void TerminateThread(Thread* thread)
 	parent->threadCount--;
 
 	kfree(thread);
+
+	asm volatile ("int $32");
 }
 
 void TerminateProcess(int retCode)
@@ -508,19 +547,49 @@ void TerminateProcess(int retCode)
 	kfree(current);
 }
 
+void thread_sleep(uint32_t ticks)
+{
+	Thread* thread = getCurrentThread();
+
+	//printf("Thread %i sleeping for %i ticks\n", thread->id, ticks);
+
+	thread_set_state(thread, THREAD_STATE_SLEEP);
+
+	thread->sleepTimeStart = sched_current_time;
+	thread->sleepTimeDelta = ticks;
+	thread->sleepTimeEnd = sched_current_time + ticks;
+
+	asm volatile ("int $32");
+}
+
+void thread_set_state(Thread* thread, uint32_t state)
+{
+	thread->state |= state;
+}
+
+uint32_t thread_get_state(Thread* thread, uint32_t state)
+{
+	return thread->state & state;
+}
+
+void thread_clear_state(Thread* thread, uint32_t state)
+{
+	thread->state &= ~(state);
+}
+
 void printProcessTree()
 {
 	Process* p = getRootProcess();
 
 	while(p)
 	{
-		printf("[%i]", p->id);
+		printf("[P%i]", p->id);
 
 		Thread* t = p->firstThread;
 
 		while(t)
 		{
-			printf("->%i", t->id);
+			printf("->[t:%i]", t->id);
 			t = t->nextThread;
 		}
 		printf("\n");

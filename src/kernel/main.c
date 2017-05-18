@@ -11,6 +11,7 @@
 #include <mm/virtmem.h>
 #include <mm/kernel_heap.h>
 #include <input/keyboard.h>
+#include <input/mouse.h>
 #include <floppy/floppy.h>
 #include <serial/serial.h>
 #include <ata/ata.h>
@@ -27,15 +28,16 @@
 
 #include <proc/task.h>
 
+#include <gui/window.h>
+#include <gui/rendering_context.h>
+#include <gui/desktop.h>
+
 /*
 
 	Known Bugs:
-		[FATAL] Sometimes PF/GPF at start.
-		[MINOR] Sometimes double typing letters
 		[FATAL] Freeze on floppy disk read,
 
 	Other notes:
-		KERNEL HEAP NOT TESTED!
 
 */
 
@@ -58,7 +60,6 @@ extern void enable_A20();
 void int32_test(uint16_t mode);
 void read_FAT();
 
-
 // define our structure
 typedef struct __attribute__ ((packed)) {
     unsigned short di, si, bp, sp, bx, dx, cx, ax;
@@ -68,79 +69,100 @@ typedef struct __attribute__ ((packed)) {
 // tell compiler our int32 function is external
 extern void int32(unsigned char intnum, regs16_t *regs);
 
-// 32 BPP struct
-typedef struct{
-	uint8_t blue;
-	uint8_t green;
-	uint8_t red;
-	uint8_t reserved;
-} __attribute__ ((packed)) pixel_t;
 
-void putPixel(pixel_t* vid_buffer, pixel_t pixel, uint32_t x, uint32_t y);
+vesa_pixel_t magenta = {0xFF, 0x00, 0xFF, 0xFF}; // BGRA
+vesa_pixel_t red = {0x00, 0x00, 0xFF, 0xFF};
+vesa_pixel_t green = {0x00, 0xFF, 0x00, 0xFF};
+vesa_pixel_t blue = {0xFF, 0x00, 0x00, 0xFF};
+vesa_pixel_t black = {0x00, 0x00, 0x00, 0xFF};
+vesa_pixel_t white = {0xFF, 0xFF, 0xFF, 0xFF};
 
-void putPixel(pixel_t* vid_buffer, pixel_t pixel, uint32_t x, uint32_t y){
-	uint32_t width = 1024; 
-
-	uint32_t offset = y * width + x;
-
-	vid_buffer[offset].blue = pixel.blue;
-	vid_buffer[offset].green = pixel.green;
-	vid_buffer[offset].red = pixel.red;
-}
- 
 // int32 test
 void int32_test(uint16_t mode)
 {
-    int y;
-    regs16_t regs;
-     
-    // switch to 320x200x256 graphics mode
-    //regs.ax = 0x0013;
+   	vbe_bochs_set_gfx(1024, 768, 32);
 
-    regs.ax = 0x4F02;
-    regs.bx = 0x0144;
-    int32(0x10, &regs);
-     
-
-    pixel_t* vid_buffer = 0xE0000000;
-
-    uint32_t pitch = 4096;
-    uint32_t height = 768;
-
-    // Identity map vid buffer
-    for(size_t i = 0; i < (4*pitch*height); i+=0x400){
-    	vmmngr_mapPhysicalAddress(vmmngr_get_directory(), (uint32_t)(vid_buffer+i), (uint32_t)(vid_buffer+i), I86_PTE_PRESENT | I86_PTE_WRITABLE);
-    }
-
-    pixel_t pixel = {0xFF, 0x00, 0xFF, 0x00};
-    pixel_t pixel2 = {0x00, 0x00, 0xFF, 0x00};
-
-    #if 1
-    // Draw some lines
-    for(int i = 0; i < 100; ++i){
-    	putPixel(vid_buffer, pixel, 0, i);
-    	putPixel(vid_buffer, pixel, 100, i);
-    	putPixel(vid_buffer, pixel2, i, 0);
-    	putPixel(vid_buffer, pixel2, i, 100);
-    	sleep(1);
-    }
-    #else
-
-   	putPixel(vid_buffer, pixel, 0, 0);
-   	putPixel(vid_buffer, pixel2, 4096, 0);
-   	putPixel(vid_buffer, pixel2, 8192, 0);
-
-    #endif
+	vesa_pixel_t clear_color = {0xFF,0xFF,0xFF,0xFF};
 	
-    // wait for key
-    regs.ax = 0x0000;
-    int32(0x16, &regs);
-     
-    // switch to 80x25x16 text mode
-    regs.ax = 0x0003;
-    int32(0x10, &regs);
+	vbe_clear_screen(clear_color);
+	
+	vbe_fill_rect(blue, 100, 200, 300, 400);
 
-    clearScreen();
+	vbe_put_char(magenta, 16, 16, 'A');
+	vbe_put_pixel(red, 16, 16);
+
+	vbe_print_string(black, 32, 32, "Hello World!\nHello new line!");
+	
+	for(;;);
+}
+
+Desktop* desktop = 0;
+
+uint16_t dbg_mouse_x = 0;
+uint16_t dbg_mouse_y = 0;
+uint8_t dbg_mouse_button = 0;
+
+int my_clamp(int value, int low, int high)
+{
+	if(value > high)
+	{
+		return high;
+	}
+
+	if(value < low)
+	{
+		return low;
+	}
+
+	return value;
+}
+
+void gui_mouse_moved_handler(mouse_moved_event_t* ev)
+{
+	dbg_mouse_x = (uint16_t)my_clamp(dbg_mouse_x + ev->dx, 0, 1024);
+	dbg_mouse_y = (uint16_t)my_clamp(dbg_mouse_y - ev->dy, 0, 768);
+
+	Desktop_ProcessMouse(desktop, dbg_mouse_x, dbg_mouse_y, dbg_mouse_button);
+}
+
+void gui_mouse_button_handler(mouse_button_event_t* ev)
+{
+	if(ev->button == MOUSE_BUTTON_LEFT)
+	{
+	    dbg_mouse_button = ev->action == MOUSE_ACTION_PRESS ? 1 : 0; 
+	}
+
+	Desktop_ProcessMouse(desktop, dbg_mouse_x, dbg_mouse_y, dbg_mouse_button);
+}
+
+void gui_test()
+{
+	uint16_t width = 600;
+	uint16_t height = 480;
+	
+	vbe_bochs_set_gfx(width, height, 32);
+
+	vesa_pixel_t clear_color = {0xFF,0xFF,0xFF,0xFF};
+	
+	vbe_clear_screen(clear_color);
+
+	Rendering_Context* context = Rendering_Context_New(0,0,0);
+	context->buffer = (uint32_t) vbe_get_buffer();
+	context->width = vbe_get_width();
+	context->height = vbe_get_height();
+
+	desktop = Desktop_Create(context);
+
+    Desktop_Create_Window(desktop, 10, 10, 300, 200);
+	Desktop_Create_Window(desktop, 100, 150, 400, 400);
+	Desktop_Create_Window(desktop, 200, 100, 200, 600);
+
+	register_mouse_moved_handler(gui_mouse_moved_handler);
+	register_mouse_button_handler(gui_mouse_button_handler);
+
+	Desktop_Paint(desktop);
+
+	for(;;);
 }
 
 void read_FAT(){
@@ -189,6 +211,23 @@ void read_FAT(){
 
 extern void syscall_interrupt_handler();
 
+
+
+void my_moved_handler(mouse_moved_event_t* ev)
+{
+	printf("Mouse Moved\n");
+}
+
+void my_button_handler(mouse_button_event_t* ev)
+{
+	printf("Mouse Button %i, %i\n", ev->button, ev->action);
+}
+
+void my_scroll_handler(mouse_scroll_event_t* ev)
+{
+	printf("Mouse Scroll %i, %i\n", ev->horizontal, ev->vertical);
+}
+
 void init(multiboot_info_t* mb_ptr, unsigned int esp){
 
 	//asm volatile("xchgw %bx,%bx");
@@ -208,12 +247,23 @@ void init(multiboot_info_t* mb_ptr, unsigned int esp){
 	hal_initialize();
 
 	printf("HAL initialization done!\n");
-
+	
 	printf("Installing keyboard\n");
 
 	keyboard_install (33);
 
 	keyboard_set_autorepeat(0x10, 1);
+
+	keyboard_disable();
+	
+	printf("Installing mouse\n");
+
+	// This causes the keyboard to stop working due to a
+	// dodgy PS/2 controller.
+	
+	mouse_install();
+
+	keyboard_enable();
 
 	setvect (0,(void (*)(void))divide_by_zero_fault, 0);
 	setvect (1,(void (*)(void))single_step_trap, 0);
@@ -333,6 +383,10 @@ void init(multiboot_info_t* mb_ptr, unsigned int esp){
 	
 	install_tss (5,0x10,esp);
 
+	register_mouse_moved_handler(my_moved_handler);
+	register_mouse_button_handler(my_button_handler);
+	register_mouse_scroll_handler(my_scroll_handler);
+
 	printf("Kernel initialization done!\n");
 }
 
@@ -439,7 +493,6 @@ int run_cmd (char* cmd_buf) {
 
 	//! exit command
 	if (strcmp (cmd_buf, "exit") == 0) {
-		acpiPowerOff();
 		return 1;
 	}
 
@@ -681,6 +734,11 @@ int run_cmd (char* cmd_buf) {
 		//executeProcess();
 	}
 
+	else if (strcmp(cmd_buf, "gui") == 0)
+	{
+		gui_test();
+	}
+
 	else if(strcmp (cmd_buf, "readfile") == 0){
 
 		char filePath[100] = {0};
@@ -759,19 +817,52 @@ void run () {
 	}
 }
 
-void idle_func()
+void time_updater()
 {
-	printProcessTree();
-
 	while(1)
 	{
-		char c = getch();
-		if(c == 'p')
-			printProcessTree();
+		asm volatile ("cli");
+		time_t currentTime;
 
-		if(c == 'n')
-			createProcess("proc.elf", 0);
-	}		
+		readRTC(&currentTime);
+
+		uint32_t x, y;
+	
+		getCursor(&x,&y);
+
+		setCursor(0,0);
+
+		printf("Current time and date:%0(2)i:%0(2)i:%0(2)i %0(2)i/%0(2)i/%0(4)i", 
+		currentTime.hour, 
+		currentTime.minute, 
+		currentTime.second, 
+		currentTime.day, 
+		currentTime.month, 
+		currentTime.year);
+
+		setCursor(x,y);	
+
+		asm volatile ("sti");
+
+		thread_sleep(10);
+	}
+}
+
+void idle_func()
+{
+	
+	printf("Welcome to the new improved (multitasking) OS4 kernel.\n \
+		 Developed by Joakim Bertils.\n");
+
+	
+
+	Thread* time_updater_thread = createThread(getKernelProcess(), time_updater, 1);
+
+	run();
+
+	acpiPowerOff();
+
+	for(;;);
 }
 
 

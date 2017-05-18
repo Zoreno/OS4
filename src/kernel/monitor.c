@@ -1,10 +1,13 @@
 #include <monitor/monitor.h>
 
 #include <lib/stdint.h>
+#include <sync/mutex.h>
 
 //===================================================================
 // Implementation specific data structures
 //===================================================================
+
+static mutex_t mon_mutex;
 
 // Data structure for each entry (character) in the VGA text mode array
 typedef struct {
@@ -39,7 +42,7 @@ character_entry_t* VIDMEM = (character_entry_t*) 0x000B8000;
 static uint32_t cursor_x = 0;
 
 // Current Y-position of the cursor
-static uint32_t cursor_y = 0;
+static uint32_t cursor_y = 1;
 
 // Current background color
 static uint8_t background_color = VGA_COLOR_BLACK;
@@ -61,7 +64,7 @@ inline uint32_t offset(uint32_t x, uint32_t y) {
 void scroll(){
 	if(cursor_y>=25){
 		int i;
-		for(i = 0; i < (80*24);++i){
+		for(i = 1; i < (80*24);++i){
 			asm volatile("nop");
 			VIDMEM[i] = VIDMEM[i+80];
 		}
@@ -78,6 +81,8 @@ void scroll(){
 //===================================================================
 
 void monitor_putch(char c) {
+
+	
 
 	// Sort out special characters
 
@@ -108,11 +113,17 @@ void monitor_putch(char c) {
 
 void monitor_puts(const char* s){
 
+	asm volatile ("cli");
+	lock(&mon_mutex);
+
 	while(*s){
 
 		monitor_putch(*(s++));
 		
 	}
+
+	unlock(&mon_mutex);
+	asm volatile ("sti");
 
 }
 
@@ -122,7 +133,7 @@ void monitor_clear(){
 	}
 
 	cursor_x = 0;
-	cursor_y = 0;
+	cursor_y = 1;
 }
 
 void monitor_setFColor(vga_color_t fc){

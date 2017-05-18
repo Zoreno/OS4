@@ -1,0 +1,106 @@
+
+proc.elf:     file format elf32-i386
+
+
+Disassembly of section .text:
+
+00804800 <main>:
+  804800:	8d 4c 24 04          	lea    ecx,[esp+0x4]
+  804804:	83 e4 f0             	and    esp,0xfffffff0
+  804807:	ff 71 fc             	push   DWORD PTR [ecx-0x4]
+  80480a:	55                   	push   ebp
+  80480b:	89 e5                	mov    ebp,esp
+  80480d:	51                   	push   ecx
+  80480e:	83 ec 04             	sub    esp,0x4
+  804811:	83 ec 0c             	sub    esp,0xc
+  804814:	68 a8 49 80 00       	push   0x8049a8
+  804819:	e8 10 00 00 00       	call   80482e <puts>
+  80481e:	83 c4 10             	add    esp,0x10
+  804821:	b8 35 03 00 00       	mov    eax,0x335
+  804826:	8b 4d fc             	mov    ecx,DWORD PTR [ebp-0x4]
+  804829:	c9                   	leave  
+  80482a:	8d 61 fc             	lea    esp,[ecx-0x4]
+  80482d:	c3                   	ret    
+
+0080482e <puts>:
+  80482e:	55                   	push   ebp
+  80482f:	89 e5                	mov    ebp,esp
+  804831:	83 ec 18             	sub    esp,0x18
+  804834:	8b 45 08             	mov    eax,DWORD PTR [ebp+0x8]
+  804837:	89 45 f0             	mov    DWORD PTR [ebp-0x10],eax
+  80483a:	c7 45 f4 00 00 00 00 	mov    DWORD PTR [ebp-0xc],0x0
+  804841:	eb 22                	jmp    804865 <puts+0x37>
+  804843:	8b 45 f4             	mov    eax,DWORD PTR [ebp-0xc]
+  804846:	8d 50 01             	lea    edx,[eax+0x1]
+  804849:	89 55 f4             	mov    DWORD PTR [ebp-0xc],edx
+  80484c:	89 c2                	mov    edx,eax
+  80484e:	8b 45 f0             	mov    eax,DWORD PTR [ebp-0x10]
+  804851:	01 d0                	add    eax,edx
+  804853:	0f b6 00             	movzx  eax,BYTE PTR [eax]
+  804856:	0f be c0             	movsx  eax,al
+  804859:	83 ec 0c             	sub    esp,0xc
+  80485c:	50                   	push   eax
+  80485d:	e8 15 00 00 00       	call   804877 <putchar>
+  804862:	83 c4 10             	add    esp,0x10
+  804865:	8b 55 f4             	mov    edx,DWORD PTR [ebp-0xc]
+  804868:	8b 45 f0             	mov    eax,DWORD PTR [ebp-0x10]
+  80486b:	01 d0                	add    eax,edx
+  80486d:	0f b6 00             	movzx  eax,BYTE PTR [eax]
+  804870:	84 c0                	test   al,al
+  804872:	75 cf                	jne    804843 <puts+0x15>
+  804874:	90                   	nop
+  804875:	c9                   	leave  
+  804876:	c3                   	ret    
+
+00804877 <putchar>:
+  804877:	55                   	push   ebp
+  804878:	89 e5                	mov    ebp,esp
+  80487a:	83 ec 14             	sub    esp,0x14
+  80487d:	8b 45 08             	mov    eax,DWORD PTR [ebp+0x8]
+  804880:	88 45 ec             	mov    BYTE PTR [ebp-0x14],al
+  804883:	80 7d ec 00          	cmp    BYTE PTR [ebp-0x14],0x0
+  804887:	74 24                	je     8048ad <putchar+0x36>
+  804889:	60                   	pusha  
+  80488a:	0f be 45 ec          	movsx  eax,BYTE PTR [ebp-0x14]
+  80488e:	25 ff 00 00 00       	and    eax,0xff
+  804893:	89 45 fc             	mov    DWORD PTR [ebp-0x4],eax
+  804896:	b8 00 00 00 00       	mov    eax,0x0
+  80489b:	8b 5d fc             	mov    ebx,DWORD PTR [ebp-0x4]
+  80489e:	b9 00 00 00 00       	mov    ecx,0x0
+  8048a3:	ba 00 00 00 00       	mov    edx,0x0
+  8048a8:	cd 80                	int    0x80
+  8048aa:	61                   	popa   
+  8048ab:	eb 01                	jmp    8048ae <putchar+0x37>
+  8048ad:	90                   	nop
+  8048ae:	c9                   	leave  
+  8048af:	c3                   	ret    
+
+008048b0 <_start>:
+  8048b0:	55                   	push   ebp
+  8048b1:	89 e5                	mov    ebp,esp
+  8048b3:	e8 17 00 00 00       	call   8048cf <__g_main>
+  8048b8:	50                   	push   eax
+  8048b9:	e8 1e 00 00 00       	call   8048dc <__g_exit>
+  8048be:	58                   	pop    eax
+  8048bf:	89 c3                	mov    ebx,eax
+  8048c1:	b9 01 00 00 00       	mov    ecx,0x1
+  8048c6:	b8 01 00 00 00       	mov    eax,0x1
+  8048cb:	cd 80                	int    0x80
+
+008048cd <hang>:
+  8048cd:	eb fe                	jmp    8048cd <hang>
+
+008048cf <__g_main>:
+  8048cf:	55                   	push   ebp
+  8048d0:	89 e5                	mov    ebp,esp
+  8048d2:	83 ec 08             	sub    esp,0x8
+  8048d5:	e8 26 ff ff ff       	call   804800 <main>
+  8048da:	c9                   	leave  
+  8048db:	c3                   	ret    
+
+008048dc <__g_exit>:
+  8048dc:	55                   	push   ebp
+  8048dd:	89 e5                	mov    ebp,esp
+  8048df:	90                   	nop
+  8048e0:	5d                   	pop    ebp
+  8048e1:	c3                   	ret    
